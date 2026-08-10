@@ -1,0 +1,58 @@
+services:
+  api:
+    build: .
+    container_name: celestra-core-api
+    ports:
+      - "${CELESTRA_PORT:-8000}:8000"
+    env_file:
+      - .env
+    environment:
+      CELESTRA_ENV: development
+      CELESTRA_DATABASE_URL: postgresql+asyncpg://celestra:celestra@postgres:5432/celestra_core
+      CELESTRA_DATABASE_URL_SYNC: postgresql+psycopg2://celestra:celestra@postgres:5432/celestra_core
+      CELESTRA_REDIS_URL: redis://redis:6379/0
+      CELESTRA_CELERY_BROKER_URL: redis://redis:6379/1
+      CELESTRA_CELERY_RESULT_BACKEND: redis://redis:6379/2
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    command: >
+      uvicorn core.app:create_app --factory --host 0.0.0.0 --port 8000 --reload
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: celestra-core-postgres
+    environment:
+      POSTGRES_USER: celestra
+      POSTGRES_PASSWORD: celestra
+      POSTGRES_DB: celestra_core
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U celestra -d celestra_core"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: celestra-core-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres_data:
+  redis_data:
