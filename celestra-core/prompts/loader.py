@@ -63,6 +63,8 @@ def load_prompts_from_directory(directory: Path, registry: PromptRegistry | None
     for path in sorted(directory.glob("**/*")):
         if path.suffix.lower() not in {".md", ".j2", ".txt", ".prompt"}:
             continue
+        if path.name.lower() in {"readme.md", "readme.txt"}:
+            continue
         template = load_prompt_file(path)
         registry.register(template, overwrite=True)
     return registry
@@ -103,11 +105,34 @@ DEFAULT_PROMPTS: list[PromptTemplate] = [
 ]
 
 
-def build_prompt_registry(library_dir: Path | None = None) -> PromptRegistry:
+def build_prompt_registry(
+    library_dir: Path | None = None,
+    *,
+    load_examples: bool | None = None,
+) -> PromptRegistry:
+    """Build the platform prompt registry.
+
+    Built-ins are always registered. Markdown under ``prompts/library/`` is
+    loaded when present. Domain examples under ``prompts/examples/`` load only
+    when ``load_examples=True`` or ``CELESTRA_LOAD_EXAMPLE_PROMPTS=true``.
+    """
     registry = PromptRegistry()
     for template in DEFAULT_PROMPTS:
         registry.register(template, overwrite=True)
     if library_dir is None:
         library_dir = Path(__file__).resolve().parent / "library"
     load_prompts_from_directory(library_dir, registry)
+
+    if load_examples is None:
+        import os
+
+        load_examples = os.getenv("CELESTRA_LOAD_EXAMPLE_PROMPTS", "").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+    if load_examples:
+        examples_dir = Path(__file__).resolve().parent / "examples"
+        load_prompts_from_directory(examples_dir, registry)
     return registry

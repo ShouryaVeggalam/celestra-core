@@ -85,6 +85,33 @@ class MetricsRegistry:
             ["metric"],
             registry=self.registry,
         )
+        # Low-cardinality operation metrics (no user_id / session_id / request_id labels).
+        self.operation_total = Counter(
+            f"{namespace}_operation_total",
+            "Platform operations by name and result",
+            ["operation", "application", "result"],
+            registry=self.registry,
+        )
+        self.operation_duration_seconds = Histogram(
+            f"{namespace}_operation_duration_seconds",
+            "Platform operation latency in seconds",
+            ["operation", "application", "result"],
+            registry=self.registry,
+            buckets=(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0),
+        )
+        self.operation_errors_total = Counter(
+            f"{namespace}_operation_errors_total",
+            "Platform operation failures by category",
+            ["operation", "application", "result"],
+            registry=self.registry,
+        )
+        # AI operations may include bounded provider label.
+        self.operation_ai_total = Counter(
+            f"{namespace}_operation_ai_total",
+            "AI operations with provider label",
+            ["operation", "application", "result", "provider"],
+            registry=self.registry,
+        )
 
     def set_app_info(self, *, app: str, env: str, version: str = "0.6.0") -> None:
         self.app_info.labels(app=app, env=env, version=version).set(1)
@@ -100,6 +127,35 @@ class MetricsRegistry:
 
     def track_error(self, code: str) -> None:
         self.errors_total.labels(code=code).inc()
+
+    def track_operation(
+        self,
+        *,
+        operation: str,
+        application: str,
+        result: str,
+        duration_seconds: float,
+        provider: str | None = None,
+    ) -> None:
+        """Record a platform operation. Labels must stay low-cardinality."""
+        app = application or "default"
+        res = result or "ok"
+        self.operation_total.labels(operation=operation, application=app, result=res).inc()
+        self.operation_duration_seconds.labels(
+            operation=operation, application=app, result=res
+        ).observe(duration_seconds)
+        if res != "ok":
+            self.operation_errors_total.labels(
+                operation=operation, application=app, result=res
+            ).inc()
+        if provider and operation.startswith("ai_"):
+            # Bound provider names at scrape time by convention (mock/openai/anthropic/…).
+            self.operation_ai_total.labels(
+                operation=operation,
+                application=app,
+                result=res,
+                provider=str(provider)[:64],
+            ).inc()
 
     def render_prometheus(self) -> tuple[bytes, str]:
         return generate_latest(self.registry), CONTENT_TYPE_LATEST

@@ -66,6 +66,16 @@ async def get_current_user(
         raise UnauthorizedError("User not found or inactive")
 
     bind_context(user_id=str(user.id), auth_method="jwt")
+    # Application from authenticated JWT claim only — never from arbitrary headers.
+    app_claim = payload.get("application")
+    if isinstance(app_claim, str) and app_claim.strip():
+        try:
+            from monitoring.application_context import bind_application
+
+            bind_application(app_claim.strip())
+            request.state.application = app_claim.strip()
+        except Exception:
+            pass
     request.state.user = user
     return user
 

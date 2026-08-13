@@ -6,8 +6,9 @@ Phase 7 does not add new top-level product modules. It hardens Phases 1–6 for 
 
 | Concern | Setting | Options | Default |
 |---|---|---|---|
-| Conversation memory | `CELESTRA_MEMORY_CONVERSATION_BACKEND` | `memory`, `redis` | `memory` |
-| Vector / RAG store | `CELESTRA_MEMORY_VECTOR_BACKEND` | `memory`, `postgres` | `memory` |
+| Conversation memory | `CELESTRA_MEMORY_CONVERSATION_BACKEND` | `memory`, `redis` (fail-closed; no silent fallback) | `memory` |
+| Conversation TTL | `CELESTRA_MEMORY_CONVERSATION_TTL_SECONDS` | seconds; refreshed on save/append | `604800` (7d) |
+| Vector / RAG store | `CELESTRA_MEMORY_VECTOR_BACKEND` | `memory`, `postgres` (**not multi-user scoped**) | `memory` |
 | Workflow runs | `CELESTRA_WORKFLOW_RUN_BACKEND` | `memory`, `redis` | `memory` |
 | Email | `CELESTRA_SMTP_*` | logging (unset) / SMTP | logging |
 | Stripe Checkout | `CELESTRA_STRIPE_SECRET_KEY` + price map | optional | off |

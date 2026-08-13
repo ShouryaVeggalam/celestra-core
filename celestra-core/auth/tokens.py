@@ -21,15 +21,20 @@ def create_access_token(
     subject: str | UUID,
     secret_key: str,
     expires_minutes: int = 30,
+    expires_seconds: int | None = None,
     algorithm: str = "HS256",
     extra_claims: dict[str, Any] | None = None,
 ) -> str:
     now = datetime.now(timezone.utc)
+    if expires_seconds is not None:
+        lifetime = timedelta(seconds=expires_seconds)
+    else:
+        lifetime = timedelta(minutes=expires_minutes)
     payload: dict[str, Any] = {
         "sub": str(subject),
         "type": "access",
         "iat": now,
-        "exp": now + timedelta(minutes=expires_minutes),
+        "exp": now + lifetime,
     }
     if extra_claims:
         payload.update(extra_claims)
@@ -68,6 +73,7 @@ def decode_token(
             token,
             secret_key,
             algorithms=algorithms or ["HS256"],
+            options={"verify_aud": False},
         )
     except jwt.PyJWTError as exc:
         raise TokenError("Invalid or expired token") from exc

@@ -1,34 +1,65 @@
-# SDK — Celestra Core (Phase 6)
+# SDK — Celestra Core
 
-First-party client surfaces for product applications.
+Two surfaces exist. Products must use the **HTTP client**.
 
-## In-process (`CelestraSDK`)
+## PUBLIC PRODUCT CLIENT — `CelestraClient`
 
-Use when the app shares the Core process / DI container:
+Remote HTTP access for product backends:
+
+```python
+from sdk import CelestraClient
+
+async with CelestraClient(
+    base_url="http://localhost:8001",
+    api_key=SERVICE_KEY,
+    default_request_id="req-123",
+) as client:
+    await client.health()
+    await client.ready()
+    await client.complete({"prompt": "hello"})
+    await client.embed({"input": "hello"})
+    await client.render_prompt({"name": "chat.user_turn", "variables": {"question": "Hi"}})
+
+    # Identity: service key mints end-user Core JWT (do not send JWT to browsers)
+    exchanged = await client.bridge_exchange(assertion)
+    user_jwt = exchanged["access_token"]
+
+    # Memory: requires end-user JWT — never falls back to API key
+    await client.start_session(application="chrona", token=user_jwt)
+    await client.add_message(
+        session_id="s1",
+        content="hello",
+        application="chrona",
+        token=user_jwt,
+    )
+    await client.get_messages("s1", application="chrona", token=user_jwt)
+```
+
+### Auth rules
+
+| Operation | Credential |
+|---|---|
+| `health` / `ready` | none |
+| `complete` / `embed` / `render_prompt` | API key or JWT |
+| `bridge_exchange` | **API key required** |
+| `start_session` / `add_message` / `get_messages` | **end-user JWT required** |
+
+Failures raise `CelestraAPIError` with `.category` ∈  
+`timeout` · `unavailable` · `auth_error` · `invalid_config` · `invalid_response` · `validation_error` · `not_found` · `server_error` · …
+
+The client does **not** mint Core JWTs, store exchanged tokens, or contain product business logic.
+
+## IN-PROCESS CORE SDK — `CelestraSDK`
 
 ```python
 from sdk import CelestraSDK
 
 sdk = CelestraSDK.from_container()
 await sdk.complete(...)
-await sdk.run_agent(...)
-sdk.track(...)
-sdk.check_entitlement("acct", "agents.enabled")
 ```
 
-`complete()` also records billing usage + analytics events.
+For Core-internal / same-process use only. **Products must not depend on this** in production deployments.
 
-## Remote HTTP (`CelestraClient`)
+## See also
 
-Use when calling a Core deployment over the network:
-
-```python
-from sdk import CelestraClient
-
-async with CelestraClient(base_url="http://localhost:8000", token=jwt) as client:
-    await client.health()
-    await client.complete({"prompt": "hello"})
-    await client.record_usage({"account_id": "acct", "metric": "ai.requests_per_day", "quantity": 1})
-```
-
-Auth via `token=` (Bearer JWT) or `api_key=` (`X-API-Key`).
+`docs/PRODUCT_INTEGRATION.md`

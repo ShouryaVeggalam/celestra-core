@@ -11,8 +11,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from auth.models import ApiKey, Permission, RefreshToken, Role, User
-from auth.passwords import hash_password
+from auth.models import ApiKey, ExternalIdentity, Permission, RefreshToken, Role, User
+from auth.passwords import hash_password, make_unusable_password
 from shared.utils.dates import utcnow
 
 
@@ -196,3 +196,68 @@ class AuthRepository:
     async def touch_api_key(self, key: ApiKey) -> None:
         key.last_used_at = utcnow()
         await self.session.flush()
+
+    async def get_external_identity(
+        self,
+        *,
+        provider: str,
+        application: str,
+        external_subject: str,
+    ) -> ExternalIdentity | None:
+        stmt = (
+            select(ExternalIdentity)
+            .where(
+                ExternalIdentity.provider == provider,
+                ExternalIdentity.application == application,
+                ExternalIdentity.external_subject == external_subject,
+            )
+            .options(
+                selectinload(ExternalIdentity.user)
+                .selectinload(User.roles)
+                .selectinload(Role.permissions)
+            )
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def create_bridged_user(
+        self,
+        *,
+        email: str,
+        full_name: str | None = None,
+        role_names: list[str] | None = None,
+    ) -> User:
+        """Provision a Core user without a usable password (bridge only)."""
+        user = User(
+            email=email.lower(),
+            hashed_password=make_unusable_password(),
+            full_name=full_name,
+            is_superuser=False,
+            is_active=True,
+        )
+        if role_names:
+            roles = await self.get_roles_by_names(role_names)
+            user.roles = roles
+        self.session.add(user)
+        await self.session.flush()
+        return user
+
+    async def create_external_identity(
+        self,
+        *,
+        provider: str,
+        application: str,
+        external_subject: str,
+        external_user_id: str,
+        user: User,
+    ) -> ExternalIdentity:
+        record = ExternalIdentity(
+            provider=provider,
+            application=application,
+            external_subject=external_subject,
+            external_user_id=external_user_id,
+            user_id=user.id,
+        )
+        self.session.add(record)
+        await self.session.flush()
+        return record

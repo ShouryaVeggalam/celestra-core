@@ -96,8 +96,17 @@ def test_prompt_registry_versions():
     assert registry.get("demo").render({"name": "x"}) == "v2 x"
 
 
-def test_library_prompts_loaded():
+def test_library_prompts_not_loaded_by_default():
     registry = build_prompt_registry()
+    names = set(registry.names())
+    assert "system.assistant" in names
+    assert "chat.user_turn" in names
+    assert "hiring.screen_resume" not in names
+    assert "research.company_brief" not in names
+
+
+def test_example_prompts_opt_in():
+    registry = build_prompt_registry(load_examples=True)
     names = set(registry.names())
     assert "hiring.screen_resume" in names
     assert "research.company_brief" in names

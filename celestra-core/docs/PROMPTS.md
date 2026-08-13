@@ -1,13 +1,13 @@
-# Prompts — Celestra Core (Phase 3)
+# Prompts — Celestra Core
 
-Versioned Jinja2 templates for all Celestra apps.
+Versioned Jinja2 templates for platform use.
 
 ## Principles
 
-- No hardcoded prompt strings in product apps
+- Platform prompts stay domain-agnostic
 - Templates are named + versioned (`name@version`)
 - Required variables are validated before render
-- File library + in-code defaults
+- Product-specific prompts belong in products
 
 ## Usage
 
@@ -16,10 +16,9 @@ from prompts import build_prompt_registry
 
 registry = build_prompt_registry()
 text = registry.render("analysis.summarize", {"content": "..."})
-template = registry.get("hiring.screen_resume", version="1")
 ```
 
-## Built-in prompts
+## Built-in prompts (CORE PLATFORM)
 
 | Name | Purpose |
 |---|---|
@@ -27,30 +26,23 @@ template = registry.get("hiring.screen_resume", version="1")
 | `chat.user_turn` | User turn + optional context |
 | `analysis.summarize` | Summarization |
 
-## Library files
+## Examples (OPTIONAL / DOMAIN-SPECIFIC)
 
-| File | Prompt |
+Under `prompts/examples/` — **not loaded by default**:
+
+| File | Classification |
 |---|---|
-| `prompts/library/hiring.screen_resume.md` | Resume screening |
-| `prompts/library/research.company_brief.md` | Company research brief |
+| `hiring.screen_resume.md` | DOMAIN-SPECIFIC example |
+| `research.company_brief.md` | EXAMPLE / OPTIONAL |
 
-Front matter format:
-
-```md
----
-name: my.prompt
-version: 1
-description: ...
-required_variables: [foo, bar]
----
-Template body with {{ foo }}
-```
+Enable with `CELESTRA_LOAD_EXAMPLE_PROMPTS=true` or `build_prompt_registry(load_examples=True)`.
 
 ## Files
 
-| File | Role |
+| Path | Role |
 |---|---|
 | `template.py` | `PromptTemplate` + Jinja render |
 | `registry.py` | Versioned registry |
 | `loader.py` | File + default loaders |
-| `library/` | Markdown prompt assets |
+| `library/` | Optional platform markdown (empty by default) |
+| `examples/` | Non-default example prompts |

@@ -19,6 +19,7 @@ from ai.router import ModelRouter
 from ai.service import AIService
 from analytics.http import router as analytics_router
 from analytics.service import AnalyticsService
+from auth.bridge_http import router as bridge_router
 from auth.oidc import OIDCClient, OIDCSettings
 from auth.oidc_http import router as oidc_router
 from auth.router import router as auth_router
@@ -57,7 +58,7 @@ from workflows.http import router as workflows_router
 from workflows.service import WorkflowService
 
 logger = get_logger(__name__)
-PLATFORM_VERSION = "0.7.0"
+PLATFORM_VERSION = "0.8.0"
 
 
 @asynccontextmanager
@@ -99,6 +100,22 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     container.register("ai_service", ai_service)
 
     # Phase 4 + 7 — Memory / Agents / Workflows (durable backends optional)
+    # Fail closed: redis backend requires a live Redis (no silent in-memory fallback).
+    if settings.memory_conversation_backend == "redis":
+        from shared.exceptions.base import ConfigurationError
+
+        try:
+            redis_ok = await redis.ping()
+        except Exception as exc:  # noqa: BLE001
+            raise ConfigurationError(
+                "CELESTRA_MEMORY_CONVERSATION_BACKEND=redis but Redis is unreachable",
+                details={"backend": "redis"},
+            ) from exc
+        if not redis_ok:
+            raise ConfigurationError(
+                "CELESTRA_MEMORY_CONVERSATION_BACKEND=redis but Redis ping failed",
+                details={"backend": "redis"},
+            )
     conversation_store = build_conversation_store(settings, redis)
     vector_store = build_vector_store(settings, namespace="memory")
     conversation_memory = ConversationMemory(
@@ -282,13 +299,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     if cfg.metrics_enabled:
         app.add_middleware(MonitoringMiddleware)
-    app.add_middleware(PerformanceMiddleware, enabled=cfg.log_performance)
+    app.add_middleware(
+        PerformanceMiddleware,
+        enabled=cfg.log_performance,
+        slow_threshold_ms=cfg.slow_request_ms,
+    )
     app.add_middleware(RequestContextMiddleware, log_requests=cfg.log_requests)
 
     register_exception_handlers(app)
     app.include_router(health_router)
     app.include_router(monitoring_router)
     app.include_router(auth_router, prefix=cfg.api_prefix)
+    app.include_router(bridge_router, prefix=cfg.api_prefix)
     app.include_router(oidc_router, prefix=cfg.api_prefix)
     app.include_router(ai_router, prefix=cfg.api_prefix)
     app.include_router(memory_router, prefix=cfg.api_prefix)

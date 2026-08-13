@@ -8,6 +8,7 @@ events through this module rather than inventing their own instrumentation.
 from monitoring.events import emit_event
 from monitoring.metrics import MetricsRegistry, get_metrics, init_metrics
 from monitoring.middleware import MonitoringMiddleware
+from monitoring.operations import timed_operation, timed_operation_sync
 from monitoring.router import router as monitoring_router
 from monitoring.tracing import (
     clear_trace,
@@ -28,5 +29,7 @@ __all__ = [
     "init_metrics",
     "monitoring_router",
     "start_trace",
+    "timed_operation",
+    "timed_operation_sync",
     "trace_headers",
 ]

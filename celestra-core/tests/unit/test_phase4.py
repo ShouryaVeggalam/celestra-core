@@ -63,11 +63,11 @@ def agent_service(ai_service: AIService, memory_service: MemoryService) -> Agent
 
 @pytest.mark.asyncio
 async def test_conversation_memory_window(memory_service: MemoryService):
-    session = await memory_service.start_session(session_id="s1")
+    session = await memory_service.start_session(session_id="s1", user_id="u1")
     assert session.id == "s1"
-    await memory_service.add_message("s1", "user", "hello")
-    await memory_service.add_message("s1", "assistant", "hi")
-    messages = await memory_service.get_messages("s1")
+    await memory_service.add_message("s1", "user", "hello", user_id="u1")
+    await memory_service.add_message("s1", "assistant", "hi", user_id="u1")
+    messages = await memory_service.get_messages("s1", user_id="u1")
     assert len(messages) == 2
     assert messages[0].content == "hello"
 

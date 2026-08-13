@@ -163,3 +163,37 @@ class RefreshToken(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     @property
     def is_revoked(self) -> bool:
         return self.revoked_at is not None
+
+
+class ExternalIdentity(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+    """Maps a product identity to a Core user.
+
+    Resolution key: (provider, application, external_subject).
+    ``external_user_id`` stores the product_user_id for mismatch detection.
+    Email is never used as the mapping key.
+    """
+
+    __tablename__ = "auth_external_identities"
+    __table_args__ = (
+        UniqueConstraint(
+            "provider",
+            "application",
+            "external_subject",
+            name="uq_auth_external_identities_subject",
+        ),
+        UniqueConstraint("user_id", name="uq_auth_external_identities_user_id"),
+    )
+
+    provider: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    application: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    external_subject: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    # Product-side user id (e.g. Revenue users.id) — for mismatch detection only.
+    external_user_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth_users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    user: Mapped[User] = relationship("User", lazy="selectin")

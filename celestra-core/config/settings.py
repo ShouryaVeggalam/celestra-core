@@ -35,9 +35,27 @@ class Settings(BaseSettings):
     auth_allow_registration: bool = True
     auth_default_role: str = "member"
 
+    # --- Identity bridge (product → Core token exchange) ---
+    # HMAC secret shared with product backends for signed user assertions (never expose to FE).
+    bridge_assertion_secret: str | None = None
+    # Legacy single issuer (Revenue default). Prefer bridge_issuers for multi-product.
+    bridge_issuer: str = "revenue-ai"
+    # Per-application expected iss claim: "revenue=revenue-ai,hiring=hiring-ai,..."
+    bridge_issuers: dict[str, str] = Field(default_factory=dict)
+    bridge_audience: str = "celestra-core"
+    bridge_clock_skew_seconds: int = Field(default=60, ge=0, le=300)
+    bridge_jti_ttl_seconds: int = Field(default=300, ge=30, le=3600)
+    bridge_access_token_expire_seconds: int = Field(default=300, ge=60, le=3600)
+    bridge_token_issuer: str = "celestra-core"
+    bridge_token_audience: str = "celestra-core"
+
     # --- Monitoring ---
     metrics_enabled: bool = True
     metrics_namespace: str = "celestra"
+    # When true, GET /ready runs SELECT 1 against the DB (default off — conservative).
+    ready_check_db: bool = False
+    # Slow-request log threshold for PerformanceMiddleware (milliseconds).
+    slow_request_ms: float = Field(default=1000.0, ge=1.0, le=600_000.0)
 
     # --- AI / Providers ---
     ai_default_provider: str = "mock"
@@ -72,8 +90,12 @@ class Settings(BaseSettings):
     billing_default_plan: str = "free"
 
     # --- Production hardening (Phase 7) ---
+    # Conversation backend: "memory" (process-local) or "redis" (shared, fail-closed).
+    # When set to redis, startup requires a reachable Redis — no silent in-memory fallback.
+    # TTL is refreshed on every save/append; expired keys are removed by Redis.
     memory_conversation_backend: Literal["memory", "redis"] = "memory"
     memory_conversation_ttl_seconds: int = Field(default=60 * 60 * 24 * 7, ge=60)
+    # Vector/RAG store — NOT multi-user scoped; do not enable for multi-tenant prod.
     memory_vector_backend: Literal["memory", "postgres"] = "memory"
     workflow_run_backend: Literal["memory", "redis"] = "memory"
     workflow_run_ttl_seconds: int = Field(default=60 * 60 * 24 * 30, ge=60)
@@ -129,6 +151,33 @@ class Settings(BaseSettings):
             return [part.strip() for part in stripped.split(",") if part.strip()]
         return value
 
+    @field_validator("bridge_issuers", mode="before")
+    @classmethod
+    def parse_bridge_issuers(cls, value: object) -> object:
+        if value is None:
+            return {}
+        if isinstance(value, dict):
+            return {str(k).strip().lower(): str(v).strip() for k, v in value.items() if str(k).strip()}
+        if isinstance(value, str):
+            stripped = value.strip()
+            if not stripped:
+                return {}
+            if stripped.startswith("{"):
+                import json
+                raw = json.loads(stripped)
+                return {str(k).strip().lower(): str(v).strip() for k, v in raw.items()}
+            mapping: dict[str, str] = {}
+            for part in stripped.split(","):
+                if "=" not in part:
+                    continue
+                app, issuer = part.split("=", 1)
+                app = app.strip().lower()
+                issuer = issuer.strip()
+                if app and issuer:
+                    mapping[app] = issuer
+            return mapping
+        return value
+
     @field_validator("stripe_price_map", mode="before")
     @classmethod
     def parse_stripe_price_map(cls, value: object) -> object:
@@ -169,6 +218,17 @@ class Settings(BaseSettings):
     @property
     def is_test(self) -> bool:
         return self.env is Environment.TEST
+
+    def bridge_issuer_map(self) -> dict[str, str]:
+        """Resolved application → expected assertion issuer."""
+        from config.applications import DEFAULT_BRIDGE_ISSUERS
+
+        merged = dict(DEFAULT_BRIDGE_ISSUERS)
+        # Legacy single issuer applies to revenue when map omits it.
+        if self.bridge_issuer:
+            merged.setdefault("revenue", self.bridge_issuer)
+        merged.update(self.bridge_issuers)
+        return merged
 
 
 @lru_cache(maxsize=1)

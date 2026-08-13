@@ -14,13 +14,22 @@ from ai.schemas import (
     RenderPromptRequest,
     RenderPromptResponse,
 )
+from monitoring.operations import timed_operation, timed_operation_sync
 from prompts.registry import PromptRegistry
 from providers.registry import ProviderRegistry
 from providers.types import CompletionRequest, EmbeddingRequest, Message, Role
 from shared.exceptions.base import ValidationAppError
-from shared.logging.setup import get_logger
 
-logger = get_logger(__name__)
+
+def _current_application() -> str | None:
+    try:
+        import structlog
+
+        ctx = structlog.contextvars.get_contextvars()
+        value = ctx.get("application")
+        return str(value) if value is not None else None
+    except Exception:
+        return None
 
 
 class AIService:
@@ -61,21 +70,42 @@ class AIService:
             tools=request.tools,
         )
 
+        application = _current_application()
         started = time.perf_counter()
-        try:
-            result = await provider.complete(completion)
-            self._track_ai(provider=provider_name, kind="complete", success=True, seconds=time.perf_counter() - started)
-        except Exception:
-            self._track_ai(provider=provider_name, kind="complete", success=False, seconds=time.perf_counter() - started)
-            raise
-
-        logger.info(
+        async with timed_operation(
             "ai_complete",
-            provider=result.provider,
-            model=result.model,
-            prompt_tokens=result.usage.prompt_tokens,
-            completion_tokens=result.usage.completion_tokens,
-        )
+            application=application,
+            provider=provider_name,
+            model=model,
+        ) as op:
+            try:
+                result = await provider.complete(completion)
+            except Exception:
+                self._track_ai(
+                    provider=provider_name,
+                    kind="complete",
+                    success=False,
+                    seconds=time.perf_counter() - started,
+                )
+                raise
+            # Token usage only when the provider already exposes reliable values.
+            usage_fields: dict[str, Any] = {}
+            if result.usage is not None:
+                if result.usage.prompt_tokens is not None:
+                    usage_fields["prompt_tokens"] = result.usage.prompt_tokens
+                if result.usage.completion_tokens is not None:
+                    usage_fields["completion_tokens"] = result.usage.completion_tokens
+                if result.usage.total_tokens is not None:
+                    usage_fields["total_tokens"] = result.usage.total_tokens
+            if usage_fields:
+                op.set(**usage_fields)
+            self._track_ai(
+                provider=provider_name,
+                kind="complete",
+                success=True,
+                seconds=time.perf_counter() - started,
+            )
+
         return CompleteResponse(
             content=result.content,
             model=result.model,
@@ -97,13 +127,30 @@ class AIService:
         else:
             provider, provider_name = self.router.resolve(model)
 
+        application = _current_application()
         started = time.perf_counter()
-        try:
-            result = await provider.embed(EmbeddingRequest(input=request.input, model=model))
-            self._track_ai(provider=provider_name, kind="embed", success=True, seconds=time.perf_counter() - started)
-        except Exception:
-            self._track_ai(provider=provider_name, kind="embed", success=False, seconds=time.perf_counter() - started)
-            raise
+        async with timed_operation(
+            "ai_embed",
+            application=application,
+            provider=provider_name,
+            model=model,
+        ):
+            try:
+                result = await provider.embed(EmbeddingRequest(input=request.input, model=model))
+            except Exception:
+                self._track_ai(
+                    provider=provider_name,
+                    kind="embed",
+                    success=False,
+                    seconds=time.perf_counter() - started,
+                )
+                raise
+            self._track_ai(
+                provider=provider_name,
+                kind="embed",
+                success=True,
+                seconds=time.perf_counter() - started,
+            )
 
         dims = len(result.embeddings[0]) if result.embeddings else 0
         return EmbedResponse(
@@ -119,8 +166,15 @@ class AIService:
         )
 
     def render_prompt(self, request: RenderPromptRequest) -> RenderPromptResponse:
-        template = self.prompts.get(request.name, version=request.version)
-        content = template.render(request.variables)
+        application = _current_application()
+        with timed_operation_sync(
+            "prompt_render",
+            application=application,
+        ) as op:
+            template = self.prompts.get(request.name, version=request.version)
+            # prompt_name is safe for logs (catalog key); not used as a Prometheus label.
+            op.set(prompt_name=template.name)
+            content = template.render(request.variables)
         return RenderPromptResponse(name=template.name, version=template.version, content=content)
 
     def list_providers(self) -> list[dict[str, Any]]:
@@ -141,7 +195,7 @@ class AIService:
 
     def _build_messages(self, request: CompleteRequest) -> list[Message]:
         if request.messages:
-            return request.messages
+            return [message for message in request.messages]
 
         messages: list[Message] = []
         if request.system:
@@ -149,11 +203,17 @@ class AIService:
 
         user_content: str | None = request.prompt
         if request.prompt_name:
-            rendered = self.prompts.render(
-                request.prompt_name,
-                request.prompt_variables,
-                version=request.prompt_version,
-            )
+            application = _current_application()
+            with timed_operation_sync(
+                "prompt_render",
+                application=application,
+            ) as op:
+                op.set(prompt_name=request.prompt_name)
+                rendered = self.prompts.render(
+                    request.prompt_name,
+                    request.prompt_variables,
+                    version=request.prompt_version,
+                )
             user_content = rendered if not user_content else f"{user_content}\n\n{rendered}"
 
         if not user_content:
@@ -177,7 +237,7 @@ class AIService:
                     kind=kind,
                     result="success" if success else "failure",
                 ).inc()
-            if hasattr(metrics, "ai_request_duration_seconds"):
+            if hasattr(metrics, "ai_request_duration_seconds") and seconds > 0:
                 metrics.ai_request_duration_seconds.labels(provider=provider, kind=kind).observe(seconds)
         except Exception:
             pass

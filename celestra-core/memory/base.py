@@ -9,16 +9,24 @@ from memory.types import ConversationSession, MemoryMessage, VectorRecord, Vecto
 
 class ConversationStore(ABC):
     @abstractmethod
-    async def get(self, session_id: str) -> ConversationSession | None: ...
+    async def get(
+        self, session_id: str, *, application: str = "default"
+    ) -> ConversationSession | None: ...
 
     @abstractmethod
     async def save(self, session: ConversationSession) -> ConversationSession: ...
 
     @abstractmethod
-    async def delete(self, session_id: str) -> None: ...
+    async def delete(self, session_id: str, *, application: str = "default") -> None: ...
 
     @abstractmethod
-    async def append(self, session_id: str, messages: list[MemoryMessage]) -> ConversationSession: ...
+    async def append(
+        self,
+        session_id: str,
+        messages: list[MemoryMessage],
+        *,
+        application: str = "default",
+    ) -> ConversationSession: ...
 
 
 class VectorStore(ABC):

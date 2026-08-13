@@ -22,16 +22,36 @@ def _track_error(code: str) -> None:
         pass
 
 
+def _error_category(exc: BaseException) -> str:
+    try:
+        from monitoring.errors import categorize_error
+
+        return categorize_error(exc)
+    except Exception:
+        return "internal_error"
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(CelestraError)
     async def celestra_error_handler(_: Request, exc: CelestraError) -> JSONResponse:
-        logger.warning("celestra_error", code=exc.code, message=exc.message, details=exc.details)
+        # Preserve existing API error contract; add category for observability only.
+        logger.warning(
+            "celestra_error",
+            code=exc.code,
+            message=exc.message,
+            details=exc.details,
+            error_category=_error_category(exc),
+        )
         _track_error(exc.code)
         return JSONResponse(status_code=exc.status_code, content=exc.to_dict())
 
     @app.exception_handler(RequestValidationError)
     async def validation_handler(_: Request, exc: RequestValidationError) -> JSONResponse:
-        logger.info("request_validation_error", errors=exc.errors())
+        logger.info(
+            "request_validation_error",
+            errors=exc.errors(),
+            error_category="validation_error",
+        )
         _track_error("validation_error")
         return JSONResponse(
             status_code=422,
@@ -54,7 +74,12 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(_: Request, exc: Exception) -> JSONResponse:
-        logger.exception("unhandled_exception", error=str(exc))
+        # Stack traces stay in logs only — never returned to API clients.
+        logger.exception(
+            "unhandled_exception",
+            error=str(exc),
+            error_category="internal_error",
+        )
         _track_error("internal_error")
         return JSONResponse(
             status_code=500,

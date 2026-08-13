@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
+import json
+import time
 from typing import Any
 from unittest.mock import AsyncMock
 
@@ -30,7 +33,9 @@ class _FakeRedis:
 
     def __init__(self) -> None:
         self._kv: dict[str, str] = {}
+        self._expiry: dict[str, float] = {}
         self._zsets: dict[str, dict[str, float]] = {}
+        self._eval_lock = asyncio.Lock()
 
     def key(self, name: str) -> str:
         return f"celestra:{name}" if not name.startswith("celestra:") else name
@@ -38,6 +43,12 @@ class _FakeRedis:
     @property
     def raw(self) -> "_FakeRaw":
         return _FakeRaw(self)
+
+    def _purge_if_expired(self, key: str) -> None:
+        exp = self._expiry.get(key)
+        if exp is not None and time.time() >= exp:
+            self._kv.pop(key, None)
+            self._expiry.pop(key, None)
 
 
 class _FakePipeline:
@@ -68,13 +79,19 @@ class _FakeRaw:
         self.client = client
 
     async def get(self, key: str) -> str | None:
+        self.client._purge_if_expired(key)
         return self.client._kv.get(key)
 
     async def set(self, key: str, value: str, ex: int | None = None) -> bool:
         self.client._kv[key] = value
+        if ex is not None and ex > 0:
+            self.client._expiry[key] = time.time() + ex
+        else:
+            self.client._expiry.pop(key, None)
         return True
 
     async def delete(self, key: str) -> int:
+        self.client._expiry.pop(key, None)
         return 1 if self.client._kv.pop(key, None) is not None else 0
 
     async def zadd(self, key: str, mapping: dict[str, float]) -> int:
@@ -92,6 +109,26 @@ class _FakeRaw:
 
     def pipeline(self) -> _FakePipeline:
         return _FakePipeline(self)
+
+    async def eval(self, script: str, numkeys: int, *keys_and_args: Any) -> str | None:
+        """Emulate the RedisConversationStore append Lua script atomically."""
+        async with self.client._eval_lock:
+            key = keys_and_args[0]
+            payload = keys_and_args[1]
+            updated_at = keys_and_args[2]
+            ttl = int(keys_and_args[3]) if len(keys_and_args) > 3 else 0
+            raw = await self.get(key)
+            if raw is None:
+                return None
+            session = ConversationSession.model_validate_json(raw)
+            incoming = [MemoryMessage.model_validate(m) for m in json.loads(payload)]
+            session.messages.extend(incoming)
+            from datetime import datetime
+
+            session.updated_at = datetime.fromisoformat(updated_at)
+            encoded = session.model_dump_json()
+            await self.set(key, encoded, ex=ttl if ttl > 0 else None)
+            return encoded
 
 
 @pytest.fixture(autouse=True)
@@ -112,6 +149,12 @@ def test_build_conversation_store_redis():
     fake = _FakeRedis()
     store = build_conversation_store(settings, redis=fake)  # type: ignore[arg-type]
     assert isinstance(store, RedisConversationStore)
+
+
+def test_build_conversation_store_redis_fail_closed_without_client():
+    settings = Settings(memory_conversation_backend="redis")
+    with pytest.raises(ConfigurationError):
+        build_conversation_store(settings, redis=None)
 
 
 def test_build_vector_store_memory_default():

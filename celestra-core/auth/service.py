@@ -72,6 +72,7 @@ class AuthService:
             raise UnauthorizedError("Invalid email or password")
         if not user.is_active:
             raise ForbiddenError("User account is disabled")
+        # Bridged users have unusable passwords — verify_password already fails.
         await self.repo.touch_last_login(user)
         return await self._issue_token_pair(user, user_agent=user_agent, ip_address=ip_address)
 

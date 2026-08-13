@@ -16,6 +16,11 @@ from shared.logging.setup import get_logger
 
 logger = get_logger(__name__)
 
+# In-process agent runs are not HTTP-authenticated; sessions are owned by this
+# synthetic Core identity so memory ownership checks still apply.
+_AGENT_MEMORY_USER_ID = "agent"
+_AGENT_MEMORY_APPLICATION = "default"
+
 
 class AgentRegistry:
     def __init__(self) -> None:
@@ -61,10 +66,24 @@ class AgentRuntime:
 
         messages: list[Message] = [Message(role=Role.SYSTEM, content=spec.system_prompt)]
         if self.memory and session_id:
-            await self.memory.start_session(session_id=session_id)
-            history = await self.memory.conversations.as_provider_messages(session_id)
+            await self.memory.start_session(
+                session_id=session_id,
+                user_id=_AGENT_MEMORY_USER_ID,
+                application=_AGENT_MEMORY_APPLICATION,
+            )
+            history = await self.memory.conversations.as_provider_messages(
+                session_id,
+                user_id=_AGENT_MEMORY_USER_ID,
+                application=_AGENT_MEMORY_APPLICATION,
+            )
             messages.extend(history)
-            await self.memory.add_message(session_id, "user", user_input)
+            await self.memory.add_message(
+                session_id,
+                "user",
+                user_input,
+                user_id=_AGENT_MEMORY_USER_ID,
+                application=_AGENT_MEMORY_APPLICATION,
+            )
         messages.append(Message(role=Role.USER, content=user_input))
 
         steps: list[AgentStep] = []
@@ -172,7 +191,13 @@ class AgentRuntime:
             steps.append(AgentStep(index=len(steps), kind="final", content=final_text))
 
         if self.memory and session_id:
-            await self.memory.add_message(session_id, "assistant", final_text)
+            await self.memory.add_message(
+                session_id,
+                "assistant",
+                final_text,
+                user_id=_AGENT_MEMORY_USER_ID,
+                application=_AGENT_MEMORY_APPLICATION,
+            )
 
         logger.info("agent_run_complete", agent=agent_name, steps=len(steps), provider=used_provider)
         return AgentRunResult(
