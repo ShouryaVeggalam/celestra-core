@@ -1,0 +1,15 @@
+{
+  "name": "Celestra Web (Next.js)",
+  "install": "npm ci",
+  "terminals": [
+    {
+      "name": "next-dev",
+      "command": "npm run dev"
+    }
+  ],
+  "ports": [
+    {
+      "port": 3000
+    }
+  ]
+}
