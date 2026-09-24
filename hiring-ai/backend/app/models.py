@@ -7,7 +7,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import JSON, DateTime, Enum, ForeignKey, String, UniqueConstraint
+from sqlalchemy import JSON, DateTime, Enum, Float, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -156,4 +156,121 @@ class HiringEvent(Base):
     actor: Mapped[str] = mapped_column(String(32), nullable=False, default="user")
     actor_id: Mapped[Optional[str]] = mapped_column(String(36))
     payload: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class JobStatus(str, enum.Enum):
+    DRAFT = "draft"
+    OPEN = "open"
+    PAUSED = "paused"
+    CLOSED = "closed"
+
+
+class CandidateStatus(str, enum.Enum):
+    ACTIVE = "active"
+    HIRED = "hired"
+    REJECTED = "rejected"
+    ARCHIVED = "archived"
+
+
+class DiscoverySource(str, enum.Enum):
+    LINKEDIN = "linkedin"
+    GITHUB = "github"
+    PORTFOLIO = "portfolio"
+    MANUAL = "manual"
+
+
+class DiscoveryStatus(str, enum.Enum):
+    DISCOVERED = "discovered"
+    REVIEWED = "reviewed"
+    IMPORTED = "imported"
+
+
+class Job(Base):
+    __tablename__ = "jobs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    org_id: Mapped[str] = mapped_column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    department: Mapped[Optional[str]] = mapped_column(String(255))
+    location: Mapped[Optional[str]] = mapped_column(String(255))
+    description: Mapped[Optional[str]] = mapped_column(Text)
+    status: Mapped[JobStatus] = mapped_column(
+        Enum(JobStatus, native_enum=False, values_callable=lambda e: [i.value for i in e]),
+        default=JobStatus.OPEN,
+        nullable=False,
+    )
+    created_by_user_id: Mapped[Optional[str]] = mapped_column(String(36))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class Candidate(Base):
+    __tablename__ = "candidates"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    org_id: Mapped[str] = mapped_column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    first_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    last_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    email: Mapped[Optional[str]] = mapped_column(String(320))
+    headline: Mapped[Optional[str]] = mapped_column(String(500))
+    location: Mapped[Optional[str]] = mapped_column(String(255))
+    linkedin_url: Mapped[Optional[str]] = mapped_column(String(500))
+    github_url: Mapped[Optional[str]] = mapped_column(String(500))
+    portfolio_url: Mapped[Optional[str]] = mapped_column(String(500))
+    summary: Mapped[Optional[str]] = mapped_column(Text)
+    skills: Mapped[list] = mapped_column(JSON, default=list)
+    status: Mapped[CandidateStatus] = mapped_column(
+        Enum(CandidateStatus, native_enum=False, values_callable=lambda e: [i.value for i in e]),
+        default=CandidateStatus.ACTIVE,
+        nullable=False,
+    )
+    sourced_from_discovery_id: Mapped[Optional[str]] = mapped_column(String(36))
+    created_by_user_id: Mapped[Optional[str]] = mapped_column(String(36))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class SourcingProject(Base):
+    __tablename__ = "sourcing_projects"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    organization_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    job_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("jobs.id", ondelete="SET NULL"))
+    created_by_user_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class CandidateDiscovery(Base):
+    """Discovered talent draft — not a Candidate until human import."""
+
+    __tablename__ = "candidate_discoveries"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    organization_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    sourcing_project_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("sourcing_projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    full_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    headline: Mapped[Optional[str]] = mapped_column(String(500))
+    company: Mapped[Optional[str]] = mapped_column(String(255))
+    location: Mapped[Optional[str]] = mapped_column(String(255))
+    profile_url: Mapped[Optional[str]] = mapped_column(String(500))
+    source: Mapped[DiscoverySource] = mapped_column(
+        Enum(DiscoverySource, native_enum=False, values_callable=lambda e: [i.value for i in e]),
+        default=DiscoverySource.MANUAL,
+        nullable=False,
+    )
+    summary: Mapped[Optional[str]] = mapped_column(Text)
+    skills: Mapped[list] = mapped_column(JSON, default=list)
+    confidence: Mapped[float] = mapped_column(Float, default=0.5)
+    status: Mapped[DiscoveryStatus] = mapped_column(
+        Enum(DiscoveryStatus, native_enum=False, values_callable=lambda e: [i.value for i in e]),
+        default=DiscoveryStatus.DISCOVERED,
+        nullable=False,
+    )
+    imported_candidate_id: Mapped[Optional[str]] = mapped_column(String(36))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

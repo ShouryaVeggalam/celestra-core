@@ -3,10 +3,12 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { getMe, redeemInvite, createOrganization } = vi.hoisted(() => ({
+const { getMe, redeemInvite, createOrganization, listJobs, listCandidates } = vi.hoisted(() => ({
   getMe: vi.fn(),
   redeemInvite: vi.fn(),
   createOrganization: vi.fn(),
+  listJobs: vi.fn(),
+  listCandidates: vi.fn(),
 }))
 
 vi.mock('../api/hiringApi', async () => {
@@ -18,6 +20,15 @@ vi.mock('../api/hiringApi', async () => {
       redeemInvite,
       createOrganization,
       createInviteCode: vi.fn().mockResolvedValue({ code: 'ABCD1234' }),
+      listInviteCodes: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+      listJobs,
+      listCandidates,
+      createJob: vi.fn(),
+      createCandidate: vi.fn(),
+      createSourcingProject: vi.fn(),
+      discoverTalent: vi.fn(),
+      importSourcingCsv: vi.fn(),
+      importDiscovery: vi.fn(),
     },
   }
 })
@@ -39,7 +50,11 @@ describe('auth frontend', () => {
     getMe.mockReset()
     redeemInvite.mockReset()
     createOrganization.mockReset()
+    listJobs.mockReset()
+    listCandidates.mockReset()
     localStorage.clear()
+    listJobs.mockResolvedValue({ items: [], total: 0 })
+    listCandidates.mockResolvedValue({ items: [], total: 0 })
     getMe.mockResolvedValue({
       user_id: 'user-demo',
       email: 'demo@hiring.local',
@@ -56,7 +71,7 @@ describe('auth frontend', () => {
     })
   })
 
-  it('loads workspace in dev mode without Firebase login', async () => {
+  it('loads workspace shell in dev mode without Firebase login', async () => {
     render(
       <MemoryRouter initialEntries={['/workspace']}>
         <AuthProvider>
@@ -64,8 +79,9 @@ describe('auth frontend', () => {
         </AuthProvider>
       </MemoryRouter>,
     )
-    expect(await screen.findByText('Hiring AI Demo')).toBeInTheDocument()
-    expect(screen.getByText(/Signed in as Demo Recruiter/)).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Hiring AI Demo' })).toBeInTheDocument()
+    expect(screen.getByText('Source talent')).toBeInTheDocument()
+    expect(screen.getByText('Demo Recruiter')).toBeInTheDocument()
   })
 
   it('redeems invite codes on join page', async () => {

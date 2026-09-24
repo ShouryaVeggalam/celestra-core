@@ -8,7 +8,7 @@ class Settings(BaseSettings):
 
     app_name: str = "Hiring AI"
     environment: str = "development"
-    version: str = "0.37.0"
+    version: str = "0.38.0"
     database_url: str = "sqlite+pysqlite:///./hiring_ai.db"
     auth_mode: str = "dev"  # dev | firebase
     firebase_project_id: str = ""
@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     invite_code_pepper: str = "hiring-ai-invite-dev-pepper"
     seed_demo_tenant: bool = False
     hiring_complete_stub: bool = True
+    talent_sourcing_provider: str = "github"
+    github_token: str = ""
     celestra_core_enabled: bool = False
     celestra_core_url: str = ""
     celestra_core_api_key: str = ""

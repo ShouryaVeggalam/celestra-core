@@ -1,5 +1,14 @@
 import { hiringApiBaseUrl, hiringOrgId, hiringUserId, authMode } from '../config/hiringApiBaseUrl'
-import type { MeResponse, OrganizationCreated, RedeemInviteResponse } from './contracts'
+import type {
+  Candidate,
+  DiscoverResponse,
+  InviteCodeListItem,
+  Job,
+  MeResponse,
+  OrganizationCreated,
+  RedeemInviteResponse,
+  SourcingProject,
+} from './contracts'
 
 export class HiringApiError extends Error {
   readonly status: number
@@ -73,9 +82,7 @@ class HiringApi {
   }
 
   async getMe(): Promise<MeResponse> {
-    const response = await fetch(this.url('/api/v1/auth/me'), {
-      headers: await authHeaders(),
-    })
+    const response = await fetch(this.url('/api/v1/auth/me'), { headers: await authHeaders() })
     if (!response.ok) throw await parseError(response)
     return (await response.json()) as MeResponse
   }
@@ -108,6 +115,130 @@ class HiringApi {
     })
     if (!response.ok) throw await parseError(response)
     return (await response.json()) as { code: string }
+  }
+
+  async listInviteCodes(orgId: string): Promise<{ items: InviteCodeListItem[]; total: number }> {
+    const response = await fetch(this.url(`/api/v1/organizations/${orgId}/invite-codes`), {
+      headers: await authHeaders(),
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as { items: InviteCodeListItem[]; total: number }
+  }
+
+  async listJobs(opts?: { limit?: number; offset?: number }): Promise<{ items: Job[]; total: number }> {
+    const limit = opts?.limit ?? 50
+    const offset = opts?.offset ?? 0
+    const response = await fetch(this.url(`/api/v1/jobs?limit=${limit}&offset=${offset}`), {
+      headers: await authHeaders(),
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as { items: Job[]; total: number }
+  }
+
+  async createJob(body: {
+    title: string
+    department?: string
+    location?: string
+    description?: string
+  }): Promise<Job> {
+    const response = await fetch(this.url('/api/v1/jobs'), {
+      method: 'POST',
+      headers: await authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body),
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as Job
+  }
+
+  async listCandidates(opts?: {
+    limit?: number
+    offset?: number
+  }): Promise<{ items: Candidate[]; total: number }> {
+    const limit = opts?.limit ?? 50
+    const offset = opts?.offset ?? 0
+    const response = await fetch(this.url(`/api/v1/candidates?limit=${limit}&offset=${offset}`), {
+      headers: await authHeaders(),
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as { items: Candidate[]; total: number }
+  }
+
+  async createCandidate(body: {
+    first_name: string
+    last_name: string
+    email?: string
+    headline?: string
+    location?: string
+    summary?: string
+    skills?: string[]
+  }): Promise<Candidate> {
+    const response = await fetch(this.url('/api/v1/candidates'), {
+      method: 'POST',
+      headers: await authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body),
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as Candidate
+  }
+
+  async updateCandidateStatus(candidateId: string, status: string): Promise<Candidate> {
+    const response = await fetch(this.url(`/api/v1/candidates/${candidateId}/status`), {
+      method: 'POST',
+      headers: await authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ status }),
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as Candidate
+  }
+
+  async createSourcingProject(body: { name: string; job_id?: string | null }): Promise<SourcingProject> {
+    const response = await fetch(this.url('/api/v1/source/projects'), {
+      method: 'POST',
+      headers: await authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body),
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as SourcingProject
+  }
+
+  async discoverTalent(body: {
+    project_id: string
+    query: string
+    limit: number
+  }): Promise<DiscoverResponse> {
+    const response = await fetch(this.url('/api/v1/source/discover'), {
+      method: 'POST',
+      headers: await authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body),
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as DiscoverResponse
+  }
+
+  async importSourcingCsv(projectId: string, file: File): Promise<DiscoverResponse> {
+    const form = new FormData()
+    form.append('file', file)
+    const response = await fetch(this.url(`/api/v1/source/projects/${projectId}/import-csv`), {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: form,
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as DiscoverResponse
+  }
+
+  async importDiscovery(discoveryId: string): Promise<{
+    discovery: DiscoverResponse['discoveries'][number]
+    candidate_id: string
+    candidate_first_name: string
+    candidate_last_name: string
+  }> {
+    const response = await fetch(this.url(`/api/v1/source/import/${discoveryId}`), {
+      method: 'POST',
+      headers: await authHeaders(),
+    })
+    if (!response.ok) throw await parseError(response)
+    return await response.json()
   }
 }
 

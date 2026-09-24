@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hiring-ai-backend"
-version = "0.37.0"
+version = "0.38.0"
 description = "Hiring AI backend — Firebase auth for hosted pilots, dev Bearer for local"
 requires-python = ">=3.11"
 dependencies = [

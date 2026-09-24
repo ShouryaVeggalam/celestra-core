@@ -164,3 +164,193 @@ button,
   background: var(--accent-soft);
   color: var(--ink);
 }
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.app-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px 18px;
+  border-right: 1px solid var(--line);
+  background: color-mix(in srgb, #fff 70%, transparent);
+}
+
+.app-nav nav {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.app-nav a {
+  text-decoration: none;
+  color: var(--ink-soft);
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.app-nav a.active {
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.app-nav__footer {
+  margin-top: auto;
+  display: grid;
+  gap: 8px;
+}
+
+.app-main {
+  padding: 28px;
+}
+
+.page {
+  max-width: 980px;
+}
+
+.page-header {
+  margin-bottom: 20px;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.action-card,
+.panel {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  background: color-mix(in srgb, var(--panel) 90%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.two-col {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1.2fr);
+  gap: 14px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.field textarea,
+.field select,
+.panel textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.stack-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+button.secondary,
+.file-btn,
+.secondary-link {
+  background: var(--accent-soft);
+  color: var(--ink);
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+}
+
+.file-btn input {
+  display: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.candidate-row,
+.discovery-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.discovery-card {
+  display: grid;
+}
+
+.discovery-card__head {
+  display: flex;
+  justify-content: space-between;
+}
+
+@media (max-width: 860px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .app-nav {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .app-nav nav {
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    overflow-x: auto;
+  }
+
+  .two-col,
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+}

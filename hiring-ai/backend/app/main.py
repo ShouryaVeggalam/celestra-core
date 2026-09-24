@@ -5,12 +5,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from app.auth_api.router import router as auth_router
+from app.candidates.router import router as candidates_router
 from app.config import get_settings
 from app.database import Base, engine, get_db
 from app.devseed import seed_demo_tenant
 from app.health import build_health, build_ready
 from app.invite_codes.router import router as invite_router
+from app.jobs.router import router as jobs_router
 from app.production_guards import ProductionGuardError, assert_hosted_safe
+from app.talent_sourcing.router import router as source_router
 
 
 @asynccontextmanager
@@ -37,6 +40,9 @@ def create_app() -> FastAPI:
     )
     app.include_router(auth_router)
     app.include_router(invite_router)
+    app.include_router(jobs_router)
+    app.include_router(candidates_router)
+    app.include_router(source_router)
 
     @app.get("/health")
     def health():
