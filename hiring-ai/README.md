@@ -36,7 +36,7 @@ Set on the API:
 | Variable | Purpose |
 | --- | --- |
 | `GROQ_API_KEY` | Required for Match + structure helpers |
-| `GROQ_MODEL` | Default `llama-3.3-70b-versatile` |
+| `GROQ_MODEL` | Default `qwen/qwen3.8-27b` |
 
 AI drafts are evidence only. Humans still Import Candidate and Mark hired.
 

@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     talent_sourcing_provider: str = "github"
     github_token: str = ""
     groq_api_key: str = ""
-    groq_model: str = "llama-3.3-70b-versatile"
+    groq_model: str = "qwen/qwen3.8-27b"
     groq_base_url: str = "https://api.groq.com/openai/v1"
     celestra_core_enabled: bool = False
     celestra_core_url: str = ""

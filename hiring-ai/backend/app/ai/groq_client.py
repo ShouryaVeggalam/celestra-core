@@ -61,7 +61,7 @@ class GroqClient:
                 "Set GROQ_API_KEY to enable AI features.",
             )
         body = {
-            "model": self._settings.groq_model or "llama-3.3-70b-versatile",
+            "model": self._settings.groq_model or "qwen/qwen3.8-27b",
             "temperature": temperature,
             "max_tokens": max_tokens,
             "response_format": {"type": "json_object"},
