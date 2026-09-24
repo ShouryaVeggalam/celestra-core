@@ -1,0 +1,39 @@
+# Hiring AI — Render blueprint (API + PostgreSQL)
+# Frontend is deployed separately on Vercel.
+
+databases:
+  - name: hiring-postgres
+    plan: basic-256mb
+    postgresMajorVersion: 16
+
+services:
+  - type: web
+    name: hiring-api
+    runtime: python
+    rootDir: hiring-ai/backend
+    buildCommand: pip install -e .
+    startCommand: bash start.sh
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: ENVIRONMENT
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: hiring-postgres
+          property: connectionString
+      - key: CORS_ORIGINS
+        sync: false
+      - key: OAUTH_REDIRECT_URL
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FERNET_KEY
+        sync: false
+      - key: INVITE_CODE_PEPPER
+        sync: false
+      - key: AUTH_MODE
+        sync: false
+      - key: SEED_DEMO_TENANT
+        value: "false"
