@@ -4,6 +4,7 @@ import type {
   DiscoverResponse,
   InviteCodeListItem,
   Job,
+  MatchDraft,
   MeResponse,
   OrganizationCreated,
   RedeemInviteResponse,
@@ -236,6 +237,48 @@ class HiringApi {
     const response = await fetch(this.url(`/api/v1/source/import/${discoveryId}`), {
       method: 'POST',
       headers: await authHeaders(),
+    })
+    if (!response.ok) throw await parseError(response)
+    return await response.json()
+  }
+
+  async createMatch(body: { job_id: string; candidate_id: string }): Promise<MatchDraft> {
+    const response = await fetch(this.url('/api/v1/matches'), {
+      method: 'POST',
+      headers: await authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body),
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as MatchDraft
+  }
+
+  async structureJob(text: string): Promise<{
+    title: string
+    department: string | null
+    location: string | null
+    description: string | null
+  }> {
+    const response = await fetch(this.url('/api/v1/ai/structure-job'), {
+      method: 'POST',
+      headers: await authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ text }),
+    })
+    if (!response.ok) throw await parseError(response)
+    return await response.json()
+  }
+
+  async structureCandidate(text: string): Promise<{
+    first_name: string
+    last_name: string
+    headline: string | null
+    location: string | null
+    summary: string | null
+    skills: string[]
+  }> {
+    const response = await fetch(this.url('/api/v1/ai/structure-candidate'), {
+      method: 'POST',
+      headers: await authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ text }),
     })
     if (!response.ok) throw await parseError(response)
     return await response.json()

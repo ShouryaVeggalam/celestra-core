@@ -8,7 +8,7 @@ class Settings(BaseSettings):
 
     app_name: str = "Hiring AI"
     environment: str = "development"
-    version: str = "0.38.0"
+    version: str = "0.39.0"
     database_url: str = "sqlite+pysqlite:///./hiring_ai.db"
     auth_mode: str = "dev"  # dev | firebase
     firebase_project_id: str = ""
@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     hiring_complete_stub: bool = True
     talent_sourcing_provider: str = "github"
     github_token: str = ""
+    groq_api_key: str = ""
+    groq_model: str = "llama-3.3-70b-versatile"
+    groq_base_url: str = "https://api.groq.com/openai/v1"
     celestra_core_enabled: bool = False
     celestra_core_url: str = ""
     celestra_core_api_key: str = ""

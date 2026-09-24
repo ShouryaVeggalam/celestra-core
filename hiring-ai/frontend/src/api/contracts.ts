@@ -101,3 +101,17 @@ export type InviteCodeListItem = {
   created_by_user_id: string
   created_at: string
 }
+
+export type MatchDraft = {
+  id: string
+  org_id: string
+  job_id: string
+  candidate_id: string
+  score: number
+  summary: string | null
+  strengths: string[]
+  gaps: string[]
+  evidence: string[]
+  model: string | null
+  created_at: string
+}

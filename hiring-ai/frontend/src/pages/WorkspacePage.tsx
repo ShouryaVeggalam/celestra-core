@@ -28,6 +28,10 @@ export function WorkspacePage() {
           <h2>Review pipeline</h2>
           <p>Imported candidates land here. Mark hired when your team decides.</p>
         </Link>
+        <Link className="action-card" to="/match">
+          <h2>Match with Groq</h2>
+          <p>Generate a fit draft for one job and one candidate. Evidence only — you decide.</p>
+        </Link>
         <Link className="action-card" to="/settings">
           <h2>Invite your client team</h2>
           <p>Create invite codes for recruiters. Share the app URL + code.</p>

@@ -274,3 +274,29 @@ class CandidateDiscovery(Base):
     )
     imported_candidate_id: Mapped[Optional[str]] = mapped_column(String(36))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class MatchDraft(Base):
+    """Immutable AI match evidence for one job + candidate. Not a hiring decision."""
+
+    __tablename__ = "match_drafts"
+    __table_args__ = (
+        UniqueConstraint("org_id", "job_id", "candidate_id", name="uq_match_drafts_org_job_candidate"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    org_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    job_id: Mapped[str] = mapped_column(String(36), ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False)
+    candidate_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("candidates.id", ondelete="CASCADE"), nullable=False
+    )
+    score: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    summary: Mapped[Optional[str]] = mapped_column(Text)
+    strengths: Mapped[list] = mapped_column(JSON, default=list)
+    gaps: Mapped[list] = mapped_column(JSON, default=list)
+    evidence: Mapped[list] = mapped_column(JSON, default=list)
+    model: Mapped[Optional[str]] = mapped_column(String(120))
+    created_by_user_id: Mapped[Optional[str]] = mapped_column(String(36))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

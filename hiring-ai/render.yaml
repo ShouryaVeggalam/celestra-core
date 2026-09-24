@@ -37,3 +37,9 @@ services:
         sync: false
       - key: SEED_DEMO_TENANT
         value: "false"
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+      - key: GITHUB_TOKEN
+        sync: false

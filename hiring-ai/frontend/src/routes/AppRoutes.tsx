@@ -5,6 +5,7 @@ import { CandidatesPage } from '../pages/CandidatesPage'
 import { JoinPage } from '../pages/JoinPage'
 import { JobsPage } from '../pages/JobsPage'
 import { LoginPage } from '../pages/LoginPage'
+import { MatchPage } from '../pages/MatchPage'
 import { OnboardingPage } from '../pages/OnboardingPage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { SourcingPage } from '../pages/SourcingPage'
@@ -25,6 +26,7 @@ export function AppRoutes() {
           <Route path="/jobs" element={<JobsPage />} />
           <Route path="/candidates" element={<CandidatesPage />} />
           <Route path="/sourcing" element={<SourcingPage />} />
+          <Route path="/match" element={<MatchPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route index element={<Navigate to={mode === 'firebase' ? '/login' : '/workspace'} replace />} />
         </Route>

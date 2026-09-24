@@ -17,7 +17,9 @@ Firebase UIDs are **not** stored on `User` and never appear in API payloads.
 cd hiring-ai/backend
 python3 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
-SEED_DEMO_TENANT=true AUTH_MODE=dev .venv/bin/uvicorn app.main:app --reload --port 8003
+cp .env.example .env
+# Add GROQ_API_KEY from https://console.groq.com/keys
+SEED_DEMO_TENANT=true AUTH_MODE=dev GROQ_API_KEY=gsk_... .venv/bin/uvicorn app.main:app --reload --port 8003
 
 cd hiring-ai/frontend
 cp .env.example .env
@@ -25,7 +27,18 @@ npm install
 npm run dev
 ```
 
-Open http://127.0.0.1:5177 — dev mode skips the login page and uses the demo org.
+Open http://127.0.0.1:5177 — Use **Match** to compare a job and candidate with Groq.
+
+## Groq AI
+
+Set on the API:
+
+| Variable | Purpose |
+| --- | --- |
+| `GROQ_API_KEY` | Required for Match + structure helpers |
+| `GROQ_MODEL` | Default `llama-3.3-70b-versatile` |
+
+AI drafts are evidence only. Humans still Import Candidate and Mark hired.
 
 ```bash
 cd hiring-ai/backend && .venv/bin/pytest

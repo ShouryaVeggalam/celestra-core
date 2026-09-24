@@ -12,6 +12,8 @@ from app.devseed import seed_demo_tenant
 from app.health import build_health, build_ready
 from app.invite_codes.router import router as invite_router
 from app.jobs.router import router as jobs_router
+from app.matching.router import router as matches_router
+from app.matching.router import structure_router as ai_structure_router
 from app.production_guards import ProductionGuardError, assert_hosted_safe
 from app.talent_sourcing.router import router as source_router
 
@@ -43,6 +45,8 @@ def create_app() -> FastAPI:
     app.include_router(jobs_router)
     app.include_router(candidates_router)
     app.include_router(source_router)
+    app.include_router(matches_router)
+    app.include_router(ai_structure_router)
 
     @app.get("/health")
     def health():

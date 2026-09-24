@@ -57,6 +57,7 @@ def build_ready(settings: Settings, db: Session, *, migrations_at_head: bool = T
     firebase_ok = firebase_configured(settings)
     firebase_ready = firebase_ok if hosted else True
     ready = database_ok and firebase_ready and bool(migrations_at_head)
+    groq_ok = bool((settings.groq_api_key or "").strip())
 
     payload = {
         "status": "ready" if ready else "not_ready",
@@ -65,6 +66,7 @@ def build_ready(settings: Settings, db: Session, *, migrations_at_head: bool = T
         "version": settings.version,
         "database": "ok" if database_ok else "unavailable",
         "firebase": "ok" if firebase_ok else "unavailable",
+        "groq": "ok" if groq_ok else "unavailable",
         "celestra_core": "disabled" if not settings.celestra_core_enabled else "ok",
     }
     return (200 if ready else 503, payload)

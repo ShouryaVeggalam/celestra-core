@@ -6,6 +6,7 @@ const LINKS = [
   { to: '/jobs', label: 'Jobs' },
   { to: '/candidates', label: 'Candidates' },
   { to: '/sourcing', label: 'Sourcing' },
+  { to: '/match', label: 'Match' },
   { to: '/settings', label: 'Settings' },
 ]
 
