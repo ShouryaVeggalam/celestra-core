@@ -1,7 +1,7 @@
 """Groq match + structure tests (mocked HTTP)."""
 
 from app.ai.groq_client import GroqClient, extract_json_object
-from app.config import Settings
+from app.config import Settings, get_settings
 from tests.conftest import auth_headers
 
 
@@ -10,7 +10,19 @@ def test_extract_json_object_from_fence():
     assert payload["score"] == 0.8
 
 
-def test_match_requires_groq_key(client, user_a, org_a):
+def test_match_requires_groq_key(client, user_a, org_a, monkeypatch):
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    settings = Settings(
+        _env_file=None,
+        database_url="sqlite+pysqlite:///:memory:",
+        auth_mode="dev",
+        groq_api_key="",
+        seed_demo_tenant=False,
+        invite_code_pepper="test-pepper-not-for-prod",
+    )
+    client.app.dependency_overrides[get_settings] = lambda: settings
+    monkeypatch.setattr("app.matching.router.get_settings", lambda: settings)
+
     headers = auth_headers(user_a.id, org_a.id)
     job = client.post("/api/v1/jobs", headers=headers, json={"title": "Engineer"}).json()
     cand = client.post(
@@ -28,13 +40,14 @@ def test_match_requires_groq_key(client, user_a, org_a):
 
 
 def test_match_uses_groq(client, user_a, org_a, monkeypatch):
-    from app.config import get_settings
-
+    monkeypatch.setenv("GROQ_API_KEY", "gsk_test")
+    monkeypatch.setenv("GROQ_MODEL", "qwen/qwen3.8-27b")
     settings = Settings(
+        _env_file=None,
         database_url="sqlite+pysqlite:///:memory:",
         auth_mode="dev",
         groq_api_key="gsk_test",
-        groq_model="llama-3.3-70b-versatile",
+        groq_model="qwen/qwen3.8-27b",
         seed_demo_tenant=False,
         invite_code_pepper="test-pepper-not-for-prod",
     )
@@ -77,13 +90,13 @@ def test_match_uses_groq(client, user_a, org_a, monkeypatch):
     body = response.json()
     assert body["score"] == 0.82
     assert "Python" in body["strengths"][0] or "python" in body["strengths"][0].lower()
-    assert body["model"] == "llama-3.3-70b-versatile"
+    assert body["model"] == "qwen/qwen3.8-27b"
 
 
 def test_structure_job_via_groq(client, user_a, org_a, monkeypatch):
-    from app.config import get_settings
-
+    monkeypatch.setenv("GROQ_API_KEY", "gsk_test")
     settings = Settings(
+        _env_file=None,
         database_url="sqlite+pysqlite:///:memory:",
         auth_mode="dev",
         groq_api_key="gsk_test",
