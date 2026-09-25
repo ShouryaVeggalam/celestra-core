@@ -11,9 +11,17 @@ if [[ "${DATABASE_URL}" == sqlite* ]]; then
   exit 1
 fi
 
-# Neon / some hosts issue postgres:// — SQLAlchemy prefers postgresql://
+# Neon / some hosts issue postgres:// — normalize scheme
 if [[ "${DATABASE_URL}" == postgres://* ]]; then
   export DATABASE_URL="postgresql://${DATABASE_URL#postgres://}"
+fi
+
+# SQLAlchemy on Python 3.12+ defaults to psycopg v3 for postgresql://
+# Force the explicit dialect so Render always finds the installed driver.
+if [[ "${DATABASE_URL}" == postgresql://* ]]; then
+  export DATABASE_URL="postgresql+psycopg://${DATABASE_URL#postgresql://}"
+elif [[ "${DATABASE_URL}" == postgresql+psycopg2://* ]]; then
+  export DATABASE_URL="postgresql+psycopg://${DATABASE_URL#postgresql+psycopg2://}"
 fi
 
 # Neon requires SSL; append if the URL has no sslmode
@@ -24,6 +32,11 @@ if [[ "${DATABASE_URL}" == postgresql* ]] && [[ "${DATABASE_URL}" != *"sslmode="
     export DATABASE_URL="${DATABASE_URL}?sslmode=require"
   fi
 fi
+
+# channel_binding=require breaks some hosted clients; sslmode=require is enough
+export DATABASE_URL="${DATABASE_URL//&channel_binding=require/}"
+export DATABASE_URL="${DATABASE_URL//channel_binding=require&/}"
+export DATABASE_URL="${DATABASE_URL//?channel_binding=require/}"
 
 export PYTHONUNBUFFERED=1
 alembic upgrade head
