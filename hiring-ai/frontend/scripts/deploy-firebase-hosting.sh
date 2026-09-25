@@ -10,7 +10,7 @@ cd "$ROOT"
 export VITE_HIRING_API_URL="${VITE_HIRING_API_URL:-https://hiring-api-boww.onrender.com}"
 
 export VITE_AUTH_MODE=firebase
-export VITE_FIREBASE_API_KEY="${VITE_FIREBASE_API_KEY:-AIzaSyC8eKKUStSHrTyuVeva9UnbDDRerLagIOM}"
+export VITE_FIREBASE_API_KEY="${VITE_FIREBASE_API_KEY:-AIzaSyC8eKKUsTSHrTyuVeva9UnbDDRErLagIOM}"
 export VITE_FIREBASE_AUTH_DOMAIN="${VITE_FIREBASE_AUTH_DOMAIN:-celestra-revenue-dev.firebaseapp.com}"
 export VITE_FIREBASE_PROJECT_ID="${VITE_FIREBASE_PROJECT_ID:-celestra-revenue-dev}"
 export VITE_FIREBASE_APP_ID="${VITE_FIREBASE_APP_ID:-1:258268341724:web:aa69dbbb120b7591b3db19}"

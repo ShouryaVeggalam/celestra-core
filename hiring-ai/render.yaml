@@ -61,7 +61,7 @@ services:
       - key: VITE_HIRING_API_URL
         value: https://hiring-api-boww.onrender.com
       - key: VITE_FIREBASE_API_KEY
-        value: AIzaSyC8eKKUStSHrTyuVeva9UnbDDRerLagIOM
+        value: AIzaSyC8eKKUsTSHrTyuVeva9UnbDDRErLagIOM
       - key: VITE_FIREBASE_AUTH_DOMAIN
         value: celestra-revenue-dev.firebaseapp.com
       - key: VITE_FIREBASE_PROJECT_ID
