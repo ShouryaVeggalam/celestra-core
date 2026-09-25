@@ -45,7 +45,7 @@ services:
         sync: false
 
   - type: web
-    name: hiring-web
+    name: hiring-ai
     runtime: static
     plan: free
     rootDir: hiring-ai/frontend

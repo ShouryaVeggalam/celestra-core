@@ -48,13 +48,13 @@ cd hiring-ai/frontend && npm test && npm run build
 ## Share with a client (hosted pilot)
 
 **Live free stack (current):**
-- App: https://celestra-revenue-dev.web.app (Firebase Hosting)
+- App: https://hiring-ai.onrender.com (rename Render static service from `celestra-core` → `hiring-ai`)
 - API: https://hiring-api-boww.onrender.com (`GET /ready` → `database=ok`, `firebase=ok`, `groq=ok`)
 
 1. **Firebase** — reuse Revenue AI project `celestra-revenue-dev` (Email/Password + Google).
 2. **Neon** — free Postgres; set `DATABASE_URL` on Render.
-3. **Render** — blueprint at repo-root [`render.yaml`](../render.yaml); `AUTH_MODE=firebase`, CORS to `.web.app`.
-4. **Firebase Hosting** — from `hiring-ai/frontend`: `./scripts/deploy-firebase-hosting.sh`
+3. **Render** — blueprint at repo-root [`render.yaml`](../render.yaml); `AUTH_MODE=firebase`, CORS to the app URL.
+4. **Static site** — service name `hiring-ai` (frontend root `hiring-ai/frontend`).
 5. You sign in first → **Create organization** → Settings → create invite → send the client **app URL + invite code**.
 
 ### What your client can do
