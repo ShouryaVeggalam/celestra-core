@@ -1,15 +1,14 @@
-# Hiring AI — Render blueprint (API + PostgreSQL)
-# Frontend is deployed separately on Vercel.
-
-databases:
-  - name: hiring-postgres
-    plan: basic-256mb
-    postgresMajorVersion: 16
+# Hiring AI — free hosted API (Render web + external free Postgres)
+# Frontend: Firebase Hosting → https://celestra-revenue-dev.web.app
+#
+# Free Postgres: create a project at https://console.neon.tech → copy connection string
+# into DATABASE_URL below (Render dashboard → Environment).
 
 services:
   - type: web
     name: hiring-api
     runtime: python
+    plan: free
     rootDir: hiring-ai/backend
     buildCommand: pip install -e .
     startCommand: bash start.sh
@@ -18,28 +17,26 @@ services:
       - key: PYTHONUNBUFFERED
         value: "1"
       - key: ENVIRONMENT
-        sync: false
-      - key: DATABASE_URL
-        fromDatabase:
-          name: hiring-postgres
-          property: connectionString
-      - key: CORS_ORIGINS
-        sync: false
-      - key: OAUTH_REDIRECT_URL
-        sync: false
+        value: staging
+      - key: AUTH_MODE
+        value: firebase
+      - key: SEED_DEMO_TENANT
+        value: "false"
       - key: FIREBASE_PROJECT_ID
+        value: celestra-revenue-dev
+      - key: GROQ_MODEL
+        value: qwen/qwen3.8-27b
+      - key: DATABASE_URL
         sync: false
+      - key: CORS_ORIGINS
+        value: https://celestra-revenue-dev.web.app,https://celestra-revenue-dev.firebaseapp.com
+      - key: OAUTH_REDIRECT_URL
+        value: https://celestra-revenue-dev.web.app/auth/callback
       - key: FERNET_KEY
         sync: false
       - key: INVITE_CODE_PEPPER
         sync: false
-      - key: AUTH_MODE
-        sync: false
-      - key: SEED_DEMO_TENANT
-        value: "false"
       - key: GROQ_API_KEY
         sync: false
-      - key: GROQ_MODEL
-        value: qwen/qwen3.8-27b
       - key: GITHUB_TOKEN
         sync: false
