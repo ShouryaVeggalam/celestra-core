@@ -79,9 +79,11 @@ describe('auth frontend', () => {
         </AuthProvider>
       </MemoryRouter>,
     )
-    expect(await screen.findByRole('heading', { name: 'Hiring AI Demo' })).toBeInTheDocument()
-    expect(screen.getByText('Source talent')).toBeInTheDocument()
-    expect(screen.getByText('Demo Recruiter')).toBeInTheDocument()
+    expect(await screen.findByText(/Good (morning|afternoon|evening), Demo\./i)).toBeInTheDocument()
+    expect(screen.getByText('Priority Queue')).toBeInTheDocument()
+    expect(screen.getByText('Human review required')).toBeInTheDocument()
+    expect(screen.getAllByText('Demo Recruiter').length).toBeGreaterThan(0)
+    expect(screen.getByRole('link', { name: 'Workspace' })).toHaveClass('active')
   })
 
   it('redeems invite codes on join page', async () => {
