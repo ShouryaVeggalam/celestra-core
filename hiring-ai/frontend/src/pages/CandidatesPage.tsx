@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import type { Candidate } from '../api/contracts'
 import { HiringApiError, hiringApi } from '../api/hiringApi'
+import { useAuth } from '../auth/AuthProvider'
 
 export function CandidatesPage() {
+  const auth = useAuth()
   const [candidates, setCandidates] = useState<Candidate[]>([])
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -11,13 +13,15 @@ export function CandidatesPage() {
   const [busy, setBusy] = useState(false)
 
   const load = useCallback(async () => {
+    if (!auth.orgId) return
     try {
       const result = await hiringApi.listCandidates({ limit: 100 })
       setCandidates(result.items)
+      setError(null)
     } catch (caught) {
       setError(caught instanceof HiringApiError ? caught.message : 'Could not load candidates')
     }
-  }, [])
+  }, [auth.orgId])
 
   useEffect(() => {
     void load()

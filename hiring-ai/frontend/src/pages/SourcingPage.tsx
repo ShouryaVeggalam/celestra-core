@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CandidateDiscovery, Job } from '../api/contracts'
 import { HiringApiError, hiringApi } from '../api/hiringApi'
+import { useAuth } from '../auth/AuthProvider'
 
 const LIMITS = [5, 10, 20, 30] as const
 
@@ -9,6 +10,7 @@ function isOpenToWork(item: CandidateDiscovery) {
 }
 
 export function SourcingPage() {
+  const auth = useAuth()
   const [jobs, setJobs] = useState<Job[]>([])
   const [query, setQuery] = useState('python engineer')
   const [limit, setLimit] = useState(10)
@@ -20,13 +22,17 @@ export function SourcingPage() {
   const fileRef = useRef<HTMLInputElement>(null)
 
   const loadJobs = useCallback(async () => {
+    if (!auth.orgId) {
+      setJobs([])
+      return
+    }
     try {
       const result = await hiringApi.listJobs({ limit: 100 })
       setJobs(result.items)
     } catch {
       setJobs([])
     }
-  }, [])
+  }, [auth.orgId])
 
   useEffect(() => {
     void loadJobs()

@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { Candidate, Job, MatchDraft } from '../api/contracts'
 import { HiringApiError, hiringApi } from '../api/hiringApi'
+import { useAuth } from '../auth/AuthProvider'
 
 export function MatchPage() {
+  const auth = useAuth()
   const [jobs, setJobs] = useState<Job[]>([])
   const [candidates, setCandidates] = useState<Candidate[]>([])
   const [jobId, setJobId] = useState('')
@@ -12,6 +14,7 @@ export function MatchPage() {
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
+    if (!auth.orgId) return
     try {
       const [jobList, candList] = await Promise.all([
         hiringApi.listJobs({ limit: 100 }),
@@ -19,18 +22,17 @@ export function MatchPage() {
       ])
       setJobs(jobList.items)
       setCandidates(candList.items)
-      if (!jobId && jobList.items[0]) setJobId(jobList.items[0].id)
-      if (!candidateId && candList.items[0]) setCandidateId(candList.items[0].id)
+      setJobId((current) => current || jobList.items[0]?.id || '')
+      setCandidateId((current) => current || candList.items[0]?.id || '')
+      setError(null)
     } catch (caught) {
       setError(caught instanceof HiringApiError ? caught.message : 'Could not load match inputs')
     }
-  }, [jobId, candidateId])
+  }, [auth.orgId])
 
   useEffect(() => {
     void load()
-    // intentionally load once on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [load])
 
   async function onMatch() {
     if (!jobId || !candidateId) {

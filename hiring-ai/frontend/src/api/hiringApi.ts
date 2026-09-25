@@ -38,11 +38,21 @@ export function setOrganizationId(orgId: string | null) {
   else localStorage.removeItem('hiring_org_id')
 }
 
-export function getOrganizationId(): string {
+/** Active org for API calls. Never invents a demo org in Firebase mode. */
+export function getOrganizationId(): string | null {
   if (orgIdOverride) return orgIdOverride
   const stored = localStorage.getItem('hiring_org_id')
   if (stored) return stored
-  return hiringOrgId()
+  if (authMode() === 'dev') return hiringOrgId()
+  return null
+}
+
+export function resolveOrganizationId(membershipOrgIds: string[]): string | null {
+  const current = getOrganizationId()
+  if (current && membershipOrgIds.includes(current)) return current
+  const next = membershipOrgIds[0] ?? null
+  setOrganizationId(next)
+  return next
 }
 
 async function parseError(response: Response): Promise<HiringApiError> {

@@ -20,7 +20,12 @@ import {
   type ReactNode,
 } from 'react'
 import { authMode, firebaseConfig } from '../config/hiringApiBaseUrl'
-import { hiringApi, setAuthTokenProvider, setOrganizationId, getOrganizationId } from '../api/hiringApi'
+import {
+  hiringApi,
+  setAuthTokenProvider,
+  setOrganizationId,
+  resolveOrganizationId,
+} from '../api/hiringApi'
 import type { MeResponse, Membership } from '../api/contracts'
 
 type AuthContextValue = {
@@ -55,12 +60,17 @@ function ensureFirebase(): Auth {
   return auth
 }
 
+function applyMembershipOrg(profile: MeResponse): string | null {
+  const ids = profile.memberships.map((item) => item.organization_id)
+  return resolveOrganizationId(ids)
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const mode = authMode()
   const [loading, setLoading] = useState(true)
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null)
   const [me, setMe] = useState<MeResponse | null>(null)
-  const [orgId, setOrgId] = useState<string | null>(() => getOrganizationId())
+  const [orgId, setOrgId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -70,11 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .getMe()
         .then((profile) => {
           setMe(profile)
-          if (!orgId && profile.memberships[0]) {
-            const next = profile.memberships[0].organization_id
-            setOrganizationId(next)
-            setOrgId(next)
-          }
+          setOrgId(applyMembershipOrg(profile))
         })
         .catch(() => setMe(null))
         .finally(() => setLoading(false))
@@ -92,20 +98,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setFirebaseUser(user)
       if (!user) {
         setMe(null)
+        setOrgId(null)
         setLoading(false)
         return
       }
       try {
         const profile = await hiringApi.getMe()
         setMe(profile)
-        if (!getOrganizationId() && profile.memberships[0]) {
-          const next = profile.memberships[0].organization_id
-          setOrganizationId(next)
-          setOrgId(next)
-        }
+        setOrgId(applyMembershipOrg(profile))
       } catch (caught) {
         setError(caught instanceof Error ? caught.message : 'Session failed')
         setMe(null)
+        setOrgId(null)
       } finally {
         setLoading(false)
       }
@@ -143,6 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async refreshMe() {
         const profile = await hiringApi.getMe()
         setMe(profile)
+        setOrgId(applyMembershipOrg(profile))
         return profile
       },
       selectOrg(next) {

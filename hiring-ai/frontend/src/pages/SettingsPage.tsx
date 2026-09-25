@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { InviteCodeListItem } from '../api/contracts'
-import { HiringApiError, getOrganizationId, hiringApi } from '../api/hiringApi'
+import { HiringApiError, hiringApi } from '../api/hiringApi'
 import { useAuth } from '../auth/AuthProvider'
 
 export function SettingsPage() {
   const auth = useAuth()
-  const orgId = getOrganizationId()
+  const orgId = auth.orgId
   const membership =
     auth.memberships.find((item) => item.organization_id === orgId) ?? auth.memberships[0]
   const canManage = membership?.role === 'owner' || membership?.role === 'admin'

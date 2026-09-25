@@ -24,6 +24,12 @@ export function WorkspacePage() {
 
   useEffect(() => {
     let cancelled = false
+    if (!auth.orgId) {
+      setCandidates([])
+      setLoading(false)
+      return
+    }
+    setLoading(true)
     void hiringApi
       .listCandidates({ limit: 20 })
       .then((result) => {

@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import type { Job } from '../api/contracts'
 import { HiringApiError, hiringApi } from '../api/hiringApi'
+import { useAuth } from '../auth/AuthProvider'
 
 export function JobsPage() {
+  const auth = useAuth()
   const [jobs, setJobs] = useState<Job[]>([])
   const [title, setTitle] = useState('')
   const [location, setLocation] = useState('')
@@ -11,13 +13,15 @@ export function JobsPage() {
   const [busy, setBusy] = useState(false)
 
   const load = useCallback(async () => {
+    if (!auth.orgId) return
     try {
       const result = await hiringApi.listJobs({ limit: 50 })
       setJobs(result.items)
+      setError(null)
     } catch (caught) {
       setError(caught instanceof HiringApiError ? caught.message : 'Could not load jobs')
     }
-  }, [])
+  }, [auth.orgId])
 
   useEffect(() => {
     void load()
@@ -25,6 +29,10 @@ export function JobsPage() {
 
   async function onCreate(event: FormEvent) {
     event.preventDefault()
+    if (!auth.orgId) {
+      setError('Organization not ready. Refresh and try again.')
+      return
+    }
     setBusy(true)
     setError(null)
     try {
@@ -69,7 +77,7 @@ export function JobsPage() {
             <span>Description</span>
             <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} />
           </label>
-          <button type="submit" disabled={busy}>
+          <button type="submit" disabled={busy || !auth.orgId}>
             {busy ? 'Saving…' : 'Create job'}
           </button>
         </form>
@@ -80,9 +88,7 @@ export function JobsPage() {
             {jobs.map((job) => (
               <li key={job.id}>
                 <strong>{job.title}</strong>
-                <p className="muted">
-                  {[job.location, job.status].filter(Boolean).join(' · ')}
-                </p>
+                <p className="muted">{[job.location, job.status].filter(Boolean).join(' · ')}</p>
               </li>
             ))}
           </ul>
