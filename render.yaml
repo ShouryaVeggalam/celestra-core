@@ -1,5 +1,9 @@
-# Canonical blueprint lives at repo root: /render.yaml (Render auto-detects it).
-# Keep this copy in sync for docs that link under hiring-ai/.
+# Hiring AI — permanent free API
+# Blueprint: Render free web + Neon free Postgres (set DATABASE_URL in dashboard)
+# App frontend: https://celestra-revenue-dev.web.app
+#
+# Deploy: https://dashboard.render.com/blueprints/new?repo=https%3A%2F%2Fgithub.com%2FShouryaVeggalam%2Fcelestra-core
+# (select branch cursor/cloud-agent-1790260056834-2mexx if not on main yet)
 
 services:
   - type: web
