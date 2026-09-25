@@ -6,10 +6,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 
-if [[ -z "${VITE_HIRING_API_URL:-}" ]]; then
-  echo "Set VITE_HIRING_API_URL to your public API (e.g. https://hiring-api.onrender.com)" >&2
-  exit 1
-fi
+# Permanent free API on Render (override if you rename the service)
+export VITE_HIRING_API_URL="${VITE_HIRING_API_URL:-https://hiring-api-boww.onrender.com}"
 
 export VITE_AUTH_MODE=firebase
 export VITE_FIREBASE_API_KEY="${VITE_FIREBASE_API_KEY:-AIzaSyC8eKKUStSHrTyuVeva9UnbDDRerLagIOM}"

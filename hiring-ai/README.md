@@ -47,10 +47,14 @@ cd hiring-ai/frontend && npm test && npm run build
 
 ## Share with a client (hosted pilot)
 
-1. **Firebase** — create a project; enable Email/Password + Google; add your Vercel domain as an authorized domain.
-2. **Render** — deploy from [`render.yaml`](render.yaml); set `AUTH_MODE=firebase`, Postgres `DATABASE_URL`, `FIREBASE_PROJECT_ID`, HTTPS `CORS_ORIGINS` + `OAUTH_REDIRECT_URL`, strong `INVITE_CODE_PEPPER`, `SEED_DEMO_TENANT=false`. Optional: `GITHUB_TOKEN` for higher sourcing rate limits.
-3. **Vercel** — root directory `hiring-ai/frontend`; set `VITE_AUTH_MODE=firebase`, `VITE_HIRING_API_URL`, and `VITE_FIREBASE_*`.
-4. Confirm `GET /ready` returns `database=ok` and `firebase=ok`.
+**Live free stack (current):**
+- App: https://celestra-revenue-dev.web.app (Firebase Hosting)
+- API: https://hiring-api-boww.onrender.com (`GET /ready` → `database=ok`, `firebase=ok`, `groq=ok`)
+
+1. **Firebase** — reuse Revenue AI project `celestra-revenue-dev` (Email/Password + Google).
+2. **Neon** — free Postgres; set `DATABASE_URL` on Render.
+3. **Render** — blueprint at repo-root [`render.yaml`](../render.yaml); `AUTH_MODE=firebase`, CORS to `.web.app`.
+4. **Firebase Hosting** — from `hiring-ai/frontend`: `./scripts/deploy-firebase-hosting.sh`
 5. You sign in first → **Create organization** → Settings → create invite → send the client **app URL + invite code**.
 
 ### What your client can do
