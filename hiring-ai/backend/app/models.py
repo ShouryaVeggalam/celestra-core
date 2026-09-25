@@ -300,3 +300,154 @@ class MatchDraft(Base):
     model: Mapped[Optional[str]] = mapped_column(String(120))
     created_by_user_id: Mapped[Optional[str]] = mapped_column(String(36))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class ArtifactKind(str, enum.Enum):
+    OUTREACH = "outreach"
+    INTERVIEW_PREP = "interview_prep"
+    SKILLS = "skills"
+    COMPENSATION = "compensation"
+    FORECAST = "forecast"
+    PLAYBOOK = "playbook"
+    HIRING_BRIEF = "hiring_brief"
+    OFFER_LETTER = "offer_letter"
+    HIRING_CHIEF = "hiring_chief"
+    AUTONOMOUS_PREP = "autonomous_prep"
+    ANALYTICS = "analytics"
+
+
+class AgentArtifact(Base):
+    """Human-reviewed AI draft artifacts. Never an automatic hire/send action."""
+
+    __tablename__ = "agent_artifacts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    org_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    kind: Mapped[ArtifactKind] = mapped_column(
+        Enum(ArtifactKind, native_enum=False, values_callable=lambda e: [i.value for i in e]),
+        nullable=False,
+        index=True,
+    )
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    body: Mapped[Optional[str]] = mapped_column(Text)
+    payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    job_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("jobs.id", ondelete="SET NULL"))
+    candidate_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("candidates.id", ondelete="SET NULL")
+    )
+    model: Mapped[Optional[str]] = mapped_column(String(120))
+    created_by_user_id: Mapped[Optional[str]] = mapped_column(String(36))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class ReviewScorecard(Base):
+    __tablename__ = "review_scorecards"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    org_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    job_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("jobs.id", ondelete="SET NULL"))
+    candidate_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("candidates.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    overall_score: Mapped[float] = mapped_column(Float, default=0.0)
+    scores: Mapped[dict] = mapped_column(JSON, default=dict)
+    notes: Mapped[Optional[str]] = mapped_column(Text)
+    recommendation: Mapped[Optional[str]] = mapped_column(String(64))
+    created_by_user_id: Mapped[Optional[str]] = mapped_column(String(36))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class InterviewSession(Base):
+    __tablename__ = "interview_sessions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    org_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    job_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("jobs.id", ondelete="SET NULL"))
+    candidate_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("candidates.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    questions: Mapped[list] = mapped_column(JSON, default=list)
+    notes: Mapped[Optional[str]] = mapped_column(Text)
+    summary: Mapped[Optional[str]] = mapped_column(Text)
+    model: Mapped[Optional[str]] = mapped_column(String(120))
+    created_by_user_id: Mapped[Optional[str]] = mapped_column(String(36))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class Referral(Base):
+    __tablename__ = "referrals"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    org_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    job_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("jobs.id", ondelete="SET NULL"))
+    referrer_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    referrer_email: Mapped[Optional[str]] = mapped_column(String(320))
+    candidate_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    candidate_email: Mapped[Optional[str]] = mapped_column(String(320))
+    notes: Mapped[Optional[str]] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(64), default="new", nullable=False)
+    intelligence: Mapped[Optional[dict]] = mapped_column(JSON)
+    created_by_user_id: Mapped[Optional[str]] = mapped_column(String(36))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class HiringDocument(Base):
+    __tablename__ = "hiring_documents"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    org_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    doc_type: Mapped[str] = mapped_column(String(64), nullable=False)  # hiring_brief | offer_letter
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    job_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("jobs.id", ondelete="SET NULL"))
+    candidate_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("candidates.id", ondelete="SET NULL")
+    )
+    model: Mapped[Optional[str]] = mapped_column(String(120))
+    created_by_user_id: Mapped[Optional[str]] = mapped_column(String(36))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class CandidatePortalAccess(Base):
+    __tablename__ = "candidate_portal_access"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    org_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    candidate_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("candidates.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    token: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    offer_title: Mapped[Optional[str]] = mapped_column(String(255))
+    offer_body: Mapped[Optional[str]] = mapped_column(Text)
+    response_status: Mapped[str] = mapped_column(String(32), default="pending", nullable=False)
+    response_note: Mapped[Optional[str]] = mapped_column(Text)
+    created_by_user_id: Mapped[Optional[str]] = mapped_column(String(36))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    responded_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+
+
+class IntegrationLink(Base):
+    __tablename__ = "integration_links"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    org_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    provider: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="configured", nullable=False)
+    notes: Mapped[Optional[str]] = mapped_column(Text)
+    created_by_user_id: Mapped[Optional[str]] = mapped_column(String(36))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

@@ -115,3 +115,101 @@ export type MatchDraft = {
   model: string | null
   created_at: string
 }
+
+export type AgentArtifact = {
+  id: string
+  org_id: string
+  kind: string
+  title: string
+  body: string | null
+  payload: Record<string, unknown>
+  job_id: string | null
+  candidate_id: string | null
+  model: string | null
+  created_at: string | null
+}
+
+export type ReviewScorecard = {
+  id: string
+  candidate_id: string
+  job_id: string | null
+  overall_score: number
+  scores: Record<string, number>
+  notes: string | null
+  recommendation: string | null
+  created_at: string | null
+}
+
+export type InterviewSession = {
+  id: string
+  candidate_id: string
+  job_id: string | null
+  title: string
+  questions: string[]
+  notes: string | null
+  summary: string | null
+  model: string | null
+  created_at: string | null
+}
+
+export type Referral = {
+  id: string
+  referrer_name: string
+  referrer_email?: string | null
+  candidate_name: string
+  candidate_email?: string | null
+  job_id: string | null
+  notes: string | null
+  status: string
+  intelligence: Record<string, unknown> | null
+  created_at: string | null
+}
+
+export type HiringDocument = {
+  id: string
+  doc_type: string
+  title: string
+  body: string
+  job_id: string | null
+  candidate_id: string | null
+  model: string | null
+  created_at: string | null
+}
+
+export type PortalAccess = {
+  id: string
+  token: string
+  candidate_id: string
+  offer_title: string | null
+  offer_body?: string | null
+  response_status: string
+  response_note?: string | null
+  portal_path: string
+  created_at: string | null
+  responded_at?: string | null
+}
+
+export type AnalyticsSummary = {
+  organization_id: string
+  open_jobs: number
+  candidates_by_status: Record<string, number>
+  match_drafts: number
+  reviews: number
+  interviews: number
+  referrals: number
+  documents: number
+  portal_links: number
+}
+
+export type IntegrationLink = {
+  id: string
+  provider: string
+  status: string
+  notes: string | null
+  created_at: string | null
+}
+
+export type IntegrationsResponse = {
+  builtins: { provider: string; status: string }[]
+  items: IntegrationLink[]
+}

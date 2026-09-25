@@ -585,6 +585,17 @@ button,
   font-size: 14px;
 }
 
+.artifact-json {
+  margin: 12px 0 0;
+  padding: 12px;
+  border-radius: 10px;
+  background: #f4f7f5;
+  border: 1px solid var(--line);
+  font-size: 12px;
+  overflow: auto;
+  max-height: 360px;
+}
+
 .button-row {
   display: flex;
   flex-wrap: wrap;

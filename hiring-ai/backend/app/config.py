@@ -8,7 +8,7 @@ class Settings(BaseSettings):
 
     app_name: str = "Hiring AI"
     environment: str = "development"
-    version: str = "0.39.0"
+    version: str = "0.40.0"
     database_url: str = "sqlite+pysqlite:///./hiring_ai.db"
     auth_mode: str = "dev"  # dev | firebase
     firebase_project_id: str = ""

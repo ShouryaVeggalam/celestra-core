@@ -9,6 +9,7 @@ const NAV = [
       { to: '/jobs', label: 'Jobs' },
       { to: '/candidates', label: 'Candidates' },
       { to: '/sourcing', label: 'Sourcing' },
+      { to: '/match', label: 'Match' },
       { to: '/outreach', label: 'Outreach' },
       { to: '/referrals', label: 'Referrals' },
     ],

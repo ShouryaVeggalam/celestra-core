@@ -4,6 +4,8 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
+from app.agents.router import public_router as agents_public_router
+from app.agents.router import router as agents_router
 from app.auth_api.router import router as auth_router
 from app.candidates.router import router as candidates_router
 from app.config import get_settings
@@ -16,6 +18,7 @@ from app.matching.router import router as matches_router
 from app.matching.router import structure_router as ai_structure_router
 from app.production_guards import ProductionGuardError, assert_hosted_safe
 from app.talent_sourcing.router import router as source_router
+import app.models  # noqa: F401 — register metadata for create_all
 
 
 @asynccontextmanager
@@ -47,6 +50,8 @@ def create_app() -> FastAPI:
     app.include_router(source_router)
     app.include_router(matches_router)
     app.include_router(ai_structure_router)
+    app.include_router(agents_router)
+    app.include_router(agents_public_router)
 
     @app.get("/health")
     def health():
@@ -58,15 +63,6 @@ def create_app() -> FastAPI:
         from fastapi.responses import JSONResponse
 
         return JSONResponse(status_code=status_code, content=payload)
-
-    @app.get("/api/v1/candidate-portal/{token}")
-    def candidate_portal_public(token: str):
-        """Public candidate portal stub — no Firebase required."""
-        return {
-            "token": token,
-            "status": "open",
-            "message": "Candidate portal is public; recruiter auth is not required.",
-        }
 
     return app
 

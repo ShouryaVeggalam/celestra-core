@@ -151,10 +151,39 @@ def test_invite_create_and_redeem(client, user_a, org_a, db):
     assert any(m["organization_id"] == org_a.id for m in me["memberships"])
 
 
-def test_candidate_portal_is_public(client):
+def test_candidate_portal_is_public(client, user_a, org_a, db):
+    from app.models import Candidate, CandidatePortalAccess, new_id
+
+    cand = Candidate(
+        id=new_id(),
+        org_id=org_a.id,
+        first_name="Pat",
+        last_name="Lee",
+        created_by_user_id=user_a.id,
+    )
+    db.add(cand)
+    db.flush()
+    row = CandidatePortalAccess(
+        id=new_id(),
+        org_id=org_a.id,
+        candidate_id=cand.id,
+        token="public-token-abc",
+        offer_title="Draft offer",
+        offer_body="Review with your recruiter.",
+        response_status="pending",
+        created_by_user_id=user_a.id,
+    )
+    db.add(row)
+    db.commit()
+
+    missing = client.get("/api/v1/candidate-portal/does-not-exist")
+    assert missing.status_code == 404
+
     response = client.get("/api/v1/candidate-portal/public-token-abc")
     assert response.status_code == 200
-    assert response.json()["status"] == "open"
+    assert response.json()["status"] == "pending"
+    assert response.json()["candidate_name"] == "Pat Lee"
+    assert "Authorization" not in (response.request.headers or {})
 
 
 def test_user_model_excludes_firebase_uid_column():

@@ -1,13 +1,22 @@
 import { hiringApiBaseUrl, hiringOrgId, hiringUserId, authMode } from '../config/hiringApiBaseUrl'
 import type {
+  AgentArtifact,
+  AnalyticsSummary,
   Candidate,
   DiscoverResponse,
+  HiringDocument,
+  IntegrationLink,
+  IntegrationsResponse,
+  InterviewSession,
   InviteCodeListItem,
   Job,
   MatchDraft,
   MeResponse,
   OrganizationCreated,
+  PortalAccess,
   RedeemInviteResponse,
+  Referral,
+  ReviewScorecard,
   SourcingProject,
 } from './contracts'
 
@@ -292,6 +301,261 @@ class HiringApi {
     })
     if (!response.ok) throw await parseError(response)
     return await response.json()
+  }
+
+  async listArtifacts(kind?: string): Promise<{ items: AgentArtifact[] }> {
+    const qs = kind ? `?kind=${encodeURIComponent(kind)}` : ''
+    const response = await fetch(this.url(`/api/v1/agents/artifacts${qs}`), {
+      headers: await authHeaders(),
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as { items: AgentArtifact[] }
+  }
+
+  async draftOutreach(body: {
+    candidate_id: string
+    job_id?: string | null
+    extra_context?: string
+  }): Promise<AgentArtifact> {
+    const response = await fetch(this.url('/api/v1/agents/outreach'), {
+      method: 'POST',
+      headers: await authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body),
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as AgentArtifact
+  }
+
+  async draftSkills(body: { candidate_id: string }): Promise<AgentArtifact> {
+    const response = await fetch(this.url('/api/v1/agents/skills'), {
+      method: 'POST',
+      headers: await authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body),
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as AgentArtifact
+  }
+
+  async draftCompensation(body: {
+    job_id: string
+    extra_context?: string
+  }): Promise<AgentArtifact> {
+    const response = await fetch(this.url('/api/v1/agents/compensation'), {
+      method: 'POST',
+      headers: await authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body),
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as AgentArtifact
+  }
+
+  async draftForecast(body?: { topic?: string }): Promise<AgentArtifact> {
+    const response = await fetch(this.url('/api/v1/agents/forecast'), {
+      method: 'POST',
+      headers: await authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body ?? {}),
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as AgentArtifact
+  }
+
+  async draftPlaybook(body: { topic?: string; extra_context?: string }): Promise<AgentArtifact> {
+    const response = await fetch(this.url('/api/v1/agents/playbooks'), {
+      method: 'POST',
+      headers: await authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body),
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as AgentArtifact
+  }
+
+  async draftHiringChief(body?: { topic?: string }): Promise<AgentArtifact> {
+    const response = await fetch(this.url('/api/v1/agents/hiring-chief'), {
+      method: 'POST',
+      headers: await authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body ?? {}),
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as AgentArtifact
+  }
+
+  async draftAutonomousPrep(body?: {
+    topic?: string
+    extra_context?: string
+    job_id?: string | null
+    candidate_id?: string | null
+  }): Promise<AgentArtifact> {
+    const response = await fetch(this.url('/api/v1/agents/autonomous-prep'), {
+      method: 'POST',
+      headers: await authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body ?? {}),
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as AgentArtifact
+  }
+
+  async listReviews(): Promise<{ items: ReviewScorecard[] }> {
+    const response = await fetch(this.url('/api/v1/reviews'), { headers: await authHeaders() })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as { items: ReviewScorecard[] }
+  }
+
+  async createReview(body: {
+    candidate_id: string
+    job_id?: string | null
+    overall_score: number
+    scores?: Record<string, number>
+    notes?: string
+    recommendation?: string
+  }): Promise<ReviewScorecard> {
+    const response = await fetch(this.url('/api/v1/reviews'), {
+      method: 'POST',
+      headers: await authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body),
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as ReviewScorecard
+  }
+
+  async listInterviews(): Promise<{ items: InterviewSession[] }> {
+    const response = await fetch(this.url('/api/v1/interviews'), { headers: await authHeaders() })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as { items: InterviewSession[] }
+  }
+
+  async createInterview(body: {
+    candidate_id: string
+    job_id?: string | null
+    title: string
+    notes?: string
+    generate_with_ai?: boolean
+  }): Promise<InterviewSession> {
+    const response = await fetch(this.url('/api/v1/interviews'), {
+      method: 'POST',
+      headers: await authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body),
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as InterviewSession
+  }
+
+  async listReferrals(): Promise<{ items: Referral[] }> {
+    const response = await fetch(this.url('/api/v1/referrals'), { headers: await authHeaders() })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as { items: Referral[] }
+  }
+
+  async createReferral(body: {
+    referrer_name: string
+    referrer_email?: string
+    candidate_name: string
+    candidate_email?: string
+    job_id?: string | null
+    notes?: string
+    enrich_with_ai?: boolean
+  }): Promise<Referral> {
+    const response = await fetch(this.url('/api/v1/referrals'), {
+      method: 'POST',
+      headers: await authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body),
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as Referral
+  }
+
+  async listDocuments(): Promise<{ items: HiringDocument[] }> {
+    const response = await fetch(this.url('/api/v1/documents'), { headers: await authHeaders() })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as { items: HiringDocument[] }
+  }
+
+  async createDocument(body: {
+    doc_type: 'hiring_brief' | 'offer_letter'
+    job_id?: string | null
+    candidate_id?: string | null
+    extra_context?: string
+  }): Promise<HiringDocument> {
+    const response = await fetch(this.url('/api/v1/documents'), {
+      method: 'POST',
+      headers: await authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body),
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as HiringDocument
+  }
+
+  async listPortalAccess(): Promise<{ items: PortalAccess[] }> {
+    const response = await fetch(this.url('/api/v1/candidate-portal'), {
+      headers: await authHeaders(),
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as { items: PortalAccess[] }
+  }
+
+  async createPortalAccess(body: {
+    candidate_id: string
+    offer_title?: string
+    offer_body?: string
+  }): Promise<PortalAccess> {
+    const response = await fetch(this.url('/api/v1/candidate-portal'), {
+      method: 'POST',
+      headers: await authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body),
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as PortalAccess
+  }
+
+  async getPublicPortal(token: string): Promise<{
+    token: string
+    status: string
+    offer_title: string | null
+    offer_body: string | null
+    candidate_name: string | null
+    response_note: string | null
+  }> {
+    const response = await fetch(this.url(`/api/v1/candidate-portal/${encodeURIComponent(token)}`))
+    if (!response.ok) throw await parseError(response)
+    return await response.json()
+  }
+
+  async respondPublicPortal(
+    token: string,
+    body: { response_status: 'accepted' | 'declined' | 'maybe'; response_note?: string },
+  ): Promise<{ token: string; response_status: string; responded_at: string | null }> {
+    const response = await fetch(this.url(`/api/v1/candidate-portal/${encodeURIComponent(token)}/respond`), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (!response.ok) throw await parseError(response)
+    return await response.json()
+  }
+
+  async analyticsSummary(): Promise<AnalyticsSummary> {
+    const response = await fetch(this.url('/api/v1/analytics/summary'), {
+      headers: await authHeaders(),
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as AnalyticsSummary
+  }
+
+  async listIntegrations(): Promise<IntegrationsResponse> {
+    const response = await fetch(this.url('/api/v1/integrations'), {
+      headers: await authHeaders(),
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as IntegrationsResponse
+  }
+
+  async createIntegration(body: { provider: string; notes?: string }): Promise<IntegrationLink> {
+    const response = await fetch(this.url('/api/v1/integrations'), {
+      method: 'POST',
+      headers: await authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body),
+    })
+    if (!response.ok) throw await parseError(response)
+    return (await response.json()) as IntegrationLink
   }
 }
 

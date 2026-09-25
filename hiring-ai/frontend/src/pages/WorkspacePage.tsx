@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { hiringApi } from '../api/hiringApi'
-import type { Candidate } from '../api/contracts'
+import type { AnalyticsSummary, Candidate } from '../api/contracts'
 import { useAuth } from '../auth/AuthProvider'
 
 function greetingName(displayName: string | null | undefined, email: string | null | undefined) {
@@ -20,23 +20,33 @@ function dayPart(now = new Date()) {
 export function WorkspacePage() {
   const auth = useAuth()
   const [candidates, setCandidates] = useState<Candidate[]>([])
+  const [summary, setSummary] = useState<AnalyticsSummary | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let cancelled = false
     if (!auth.orgId) {
       setCandidates([])
+      setSummary(null)
       setLoading(false)
       return
     }
     setLoading(true)
-    void hiringApi
-      .listCandidates({ limit: 20 })
-      .then((result) => {
-        if (!cancelled) setCandidates(result.items)
+    void Promise.all([
+      hiringApi.listCandidates({ limit: 20 }),
+      hiringApi.analyticsSummary(),
+    ])
+      .then(([candResult, analytics]) => {
+        if (!cancelled) {
+          setCandidates(candResult.items)
+          setSummary(analytics)
+        }
       })
       .catch(() => {
-        if (!cancelled) setCandidates([])
+        if (!cancelled) {
+          setCandidates([])
+          setSummary(null)
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -49,10 +59,22 @@ export function WorkspacePage() {
   const name = greetingName(auth.me?.display_name, auth.me?.email)
   const newCandidates = candidates.filter((item) => item.status === 'active').length
   const metrics = [
-    { label: 'Pending Reviews', value: '—' },
-    { label: 'Interviews Today', value: '—' },
-    { label: 'Offer Responses', value: '—' },
-    { label: 'New Candidates', value: loading ? '—' : String(newCandidates || '—') },
+    {
+      label: 'Pending Reviews',
+      value: loading ? '—' : String(summary?.reviews ?? 0),
+    },
+    {
+      label: 'Interview packs',
+      value: loading ? '—' : String(summary?.interviews ?? 0),
+    },
+    {
+      label: 'Portal links',
+      value: loading ? '—' : String(summary?.portal_links ?? 0),
+    },
+    {
+      label: 'New Candidates',
+      value: loading ? '—' : String(newCandidates || 0),
+    },
   ]
 
   const queue = candidates.slice(0, 5)
