@@ -1,0 +1,5 @@
+hiring-ai/backend/.venv/
+hiring-ai/backend/**/__pycache__/
+hiring-ai/backend/*.db
+hiring-ai/frontend/node_modules/
+hiring-ai/frontend/dist/

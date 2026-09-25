@@ -1,0 +1,14 @@
+# Keep the Vercel upload lean — Next.js site only
+celestra-core
+hospital-management
+backend
+frontend
+.git
+.venv
+**/node_modules
+**/.next
+**/.pytest_cache
+**/__pycache__
+**/*.pyc
+**/.mypy_cache
+**/.ruff_cache

@@ -58,9 +58,15 @@ yarn-error.log*
 !.env.example
 !**/.env.example
 
+# sqlite local dbs
+*.db
+
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.env.render
+**/.env.render

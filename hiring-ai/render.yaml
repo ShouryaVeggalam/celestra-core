@@ -1,0 +1,72 @@
+# Hiring AI — permanent free stack on Render
+# - hiring-api: FastAPI + Neon Postgres
+# - hiring-web: React SPA (use this while Firebase Hosting is undeployed)
+#
+# After hiring-web is live, add its URL to hiring-api CORS_ORIGINS and
+# Firebase Auth → Authorized domains.
+
+services:
+  - type: web
+    name: hiring-api
+    runtime: python
+    plan: free
+    rootDir: hiring-ai/backend
+    buildCommand: pip install -e .
+    startCommand: bash start.sh
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+      - key: ENVIRONMENT
+        value: staging
+      - key: AUTH_MODE
+        value: firebase
+      - key: SEED_DEMO_TENANT
+        value: "false"
+      - key: FIREBASE_PROJECT_ID
+        value: celestra-revenue-dev
+      - key: GROQ_MODEL
+        value: qwen/qwen3.8-27b
+      - key: CORS_ORIGINS
+        sync: false
+      - key: OAUTH_REDIRECT_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: FERNET_KEY
+        sync: false
+      - key: INVITE_CODE_PEPPER
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+
+  - type: web
+    name: hiring-ai
+    runtime: static
+    plan: free
+    rootDir: hiring-ai/frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_AUTH_MODE
+        value: firebase
+      - key: VITE_HIRING_API_URL
+        value: https://hiring-api-boww.onrender.com
+      - key: VITE_FIREBASE_API_KEY
+        value: AIzaSyC8eKKUsTSHrTyuVeva9UnbDDRErLagIOM
+      - key: VITE_FIREBASE_AUTH_DOMAIN
+        value: celestra-revenue-dev.firebaseapp.com
+      - key: VITE_FIREBASE_PROJECT_ID
+        value: celestra-revenue-dev
+      - key: VITE_FIREBASE_APP_ID
+        value: 1:258268341724:web:aa69dbbb120b7591b3db19
+      - key: VITE_FIREBASE_MESSAGING_SENDER_ID
+        value: "258268341724"
