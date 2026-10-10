@@ -59,3 +59,6 @@ async def seed_rbac(session: AsyncSession) -> None:
                 existing_ids.add(permission.id)
 
     await session.flush()
+
+
+
