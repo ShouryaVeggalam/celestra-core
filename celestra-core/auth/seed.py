@@ -1,9 +1,11 @@
 
+
+
 """Seed default roles and permissions for Celestra Core."""
 
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.models import role_permissions
@@ -31,7 +33,7 @@ DEFAULT_ROLES: dict[str, list[str]] = {
 
 
 async def seed_rbac(session: AsyncSession) -> None:
-    """Idempotently create default roles and permissions."""
+    """Idempotently create default roles, permissions, and assignments."""
     repo = AuthRepository(session)
 
     permissions = {}
@@ -45,20 +47,19 @@ async def seed_rbac(session: AsyncSession) -> None:
             role_name, f"Default {role_name} role"
         )
 
-        stmt = select(role_permissions.c.permission_id).where(
-            role_permissions.c.role_id == role.id
-        )
-        result = await session.execute(stmt)
-        existing_ids = set(result.scalars().all())
+        links = [
+            {
+                "role_id": role.id,
+                "permission_id": permissions[code].id,
+            }
+            for code in perm_codes
+        ]
 
-        for code in perm_codes:
-            permission = permissions[code]
-
-            if permission.id not in existing_ids:
-                role.permissions.append(permission)
-                existing_ids.add(permission.id)
+        if links:
+            stmt = insert(role_permissions).values(links)
+            stmt = stmt.on_conflict_do_nothing(
+                index_elements=["role_id", "permission_id"]
+            )
+            await session.execute(stmt)
 
     await session.flush()
-
-
-
