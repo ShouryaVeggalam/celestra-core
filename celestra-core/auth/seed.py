@@ -1,9 +1,12 @@
+
 """Seed default roles and permissions for Celestra Core."""
 
 from __future__ import annotations
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from auth.models import Role, role_permissions
 from auth.repository import AuthRepository
 
 DEFAULT_PERMISSIONS: dict[str, str] = {
@@ -15,7 +18,13 @@ DEFAULT_PERMISSIONS: dict[str, str] = {
 }
 
 DEFAULT_ROLES: dict[str, list[str]] = {
-    "admin": ["users:read", "users:write", "api_keys:manage", "admin:access", "monitoring:read"],
+    "admin": [
+        "users:read",
+        "users:write",
+        "api_keys:manage",
+        "admin:access",
+        "monitoring:read",
+    ],
     "member": ["users:read", "api_keys:manage"],
     "viewer": ["users:read", "monitoring:read"],
 }
@@ -24,14 +33,30 @@ DEFAULT_ROLES: dict[str, list[str]] = {
 async def seed_rbac(session: AsyncSession) -> None:
     """Idempotently create default roles and permissions."""
     repo = AuthRepository(session)
+
     permissions = {}
     for code, description in DEFAULT_PERMISSIONS.items():
-        permissions[code] = await repo.get_or_create_permission(code, description)
+        permissions[code] = await repo.get_or_create_permission(
+            code, description
+        )
 
     for role_name, perm_codes in DEFAULT_ROLES.items():
-        role = await repo.get_or_create_role(role_name, f"Default {role_name} role")
-        existing = {p.code for p in role.permissions}
+        role = await repo.get_or_create_role(
+            role_name, f"Default {role_name} role"
+        )
+
+        # Query existing association rows directly; avoid implicit
+        # async relationship loading through role.permissions.
+        stmt = select(role_permissions.c.permission_id).where(
+            role_permissions.c.role_id == role.id
+        )
+        result = await session.execute(stmt)
+        existing_ids = set(result.scalars().all())
+
         for code in perm_codes:
-            if code not in existing:
-                role.permissions.append(permissions[code])
+            permission = permissions[code]
+            if permission.id not in existing_ids:
+                role.permissions.append(permission)
+                existing_ids.add(permission.id)
+
     await session.flush()
