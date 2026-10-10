@@ -6,7 +6,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth.models import Role, role_permissions
+from auth.models import role_permissions
 from auth.repository import AuthRepository
 
 DEFAULT_PERMISSIONS: dict[str, str] = {
@@ -45,8 +45,6 @@ async def seed_rbac(session: AsyncSession) -> None:
             role_name, f"Default {role_name} role"
         )
 
-        # Query existing association rows directly; avoid implicit
-        # async relationship loading through role.permissions.
         stmt = select(role_permissions.c.permission_id).where(
             role_permissions.c.role_id == role.id
         )
@@ -55,6 +53,7 @@ async def seed_rbac(session: AsyncSession) -> None:
 
         for code in perm_codes:
             permission = permissions[code]
+
             if permission.id not in existing_ids:
                 role.permissions.append(permission)
                 existing_ids.add(permission.id)
